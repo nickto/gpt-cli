@@ -21,6 +21,7 @@ class Chat:
         config: Config,
         system: str | None = None,
         model: str = "gpt-3.5-turbo",
+        stop: List[str] | None = None,
         max_tokens: int = 2048,
         temperature: float = 0.2,
         top_p: float = 1,
@@ -36,6 +37,7 @@ class Chat:
             self.history.add_system(system)
         self.model = model
 
+        self.stop = stop
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.top_p = top_p
@@ -65,10 +67,11 @@ class Chat:
                 ChatCompletion.create,
                 model=self.model,
                 messages=self.history.get_messages(),
-                temperature=self.temperature,
-                n=1,
+                stop=self.stop,
                 max_tokens=self.max_tokens,
+                temperature=self.temperature,
                 top_p=self.top_p,
+                n=1,
                 presence_penalty=self.presence_penalty,
                 frequency_penalty=self.frequency_penalty,
             )
@@ -88,10 +91,10 @@ class Chat:
             ChatCompletion.create,
             model=self.model,
             messages=self.history.get_messages(),
-            temperature=self.temperature,
-            n=self.n,
             max_tokens=self.max_tokens,
+            temperature=self.temperature,
             top_p=self.top_p,
+            n=self.n,
             presence_penalty=self.presence_penalty,
             frequency_penalty=self.frequency_penalty,
         )

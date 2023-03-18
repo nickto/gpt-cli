@@ -1,22 +1,15 @@
-import os
-import textwrap
 import sys
-from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
-import openai
+import rich
 import typer
-from openai.api_resources.abstract.engine_api_resource import EngineAPIResource
 from rich import print
 from rich.markdown import Markdown
-from rich.progress import Progress, SpinnerColumn, TextColumn
-import rich
-from chatgpt_cli import pretty
-from chatgpt_cli.config import Config
-from openai import ChatCompletion, Completion
-from chatgpt_cli.chat import Chat
-from chatgpt_cli.prompt import Prompt
 
+from chatgpt_cli import pretty
+from chatgpt_cli.chat import Chat
+from chatgpt_cli.config import Config
+from chatgpt_cli.prompt import Prompt
 
 app = typer.Typer(rich_markup_mode="markdown")
 
@@ -57,25 +50,45 @@ MODEL_OPTION = typer.Option(
     help="Model name, check [here](https://platform.openai.com/docs/models/model-endpoint-compatibility) for alternative models.",
     rich_help_panel="Model parameters",
 )
-MAX_TOKENS = typer.Option(
+MAX_TOKENS_OPTION = typer.Option(
     2048,
     help="Max number of tokens in completion.",
     rich_help_panel="Model parameters",
 )
-PRESENCE_PENALTY = typer.Option(
+PRESENCE_PENALTY_OPTION = typer.Option(
     0,
     min=-2,
     max=2,
     help="Penalty for repeating already existing words.",
     rich_help_panel="Model parameters",
 )
-FREQUENCY_PENALTY = typer.Option(
+FREQUENCY_PENALTY_OPTION = typer.Option(
     0,
     min=-2,
     max=2,
     help="Penalty for repeating already frequent words.",
     rich_help_panel="Model parameters",
 )
+STOP_OPTION = typer.Option(
+    None,
+    help="Sequences where the API will stop generating further tokens.",
+    rich_help_panel="Model parameters",
+)
+
+
+def validate_cli_parameters(
+    temperature: float, top_p: float, stop: List[str] | None
+) -> Tuple[float, float, List[str] | None]:
+    if temperature != 1 and top_p != 1:
+        msg = 'OpenAI recommends to change either "temperature" or "top_p", not both.'
+        pretty.warning(msg)
+
+    if stop is not None and len(stop) > 4:
+        msg = "More than 4 stop sequences provided. Will use the first 4."
+        pretty.warning(msg)
+        stop = stop[:4]
+
+    return temperature, top_p, stop
 
 
 @app.command()
@@ -88,11 +101,12 @@ def chat(
     config: typer.FileBinaryRead = CONFIG_OPTION,
     model: str = MODEL_OPTION,
     system: str = SYSTEM_OPTION,
-    max_tokens: int = MAX_TOKENS,
+    stop: Optional[List[str]] = STOP_OPTION,
+    max_tokens: int = MAX_TOKENS_OPTION,
     temperature: float = TEMPERATURE_OPTION,
     top_p: float = TOP_P_OPTION,
-    presence_penalty: float = PRESENCE_PENALTY,
-    frequency_penalty: float = FREQUENCY_PENALTY,
+    presence_penalty: float = PRESENCE_PENALTY_OPTION,
+    frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
 ):
     if "gpt" not in model:
         msg = Markdown(
@@ -110,9 +124,8 @@ def chat(
         cont = typer.confirm("Are you sure you want to continue?")
         if not cont:
             raise typer.Abort()
-    if temperature != 1 and top_p != 1:
-        msg = 'OpenAI recommends to change either "temperature" or "top_p", not both.'
-        pretty.warning(msg)
+
+    temperature, top_p, stop = validate_cli_parameters(temperature, top_p, stop)
 
     config = Config(config)
 
@@ -120,6 +133,7 @@ def chat(
         config=config,
         system=system,
         model=model,
+        stop=stop,
         max_tokens=max_tokens,
         temperature=temperature,
         top_p=top_p,
@@ -134,12 +148,13 @@ def prompt(
     config: typer.FileBinaryRead = CONFIG_OPTION,
     model: str = MODEL_OPTION,
     system: str = SYSTEM_OPTION,
-    max_tokens: int = MAX_TOKENS,
+    stop: Optional[List[str]] = STOP_OPTION,
+    max_tokens: int = MAX_TOKENS_OPTION,
     temperature: float = TEMPERATURE_OPTION,
     top_p: float = TOP_P_OPTION,
     n: int = N_OPTION,
-    presence_penalty: float = PRESENCE_PENALTY,
-    frequency_penalty: float = FREQUENCY_PENALTY,
+    presence_penalty: float = PRESENCE_PENALTY_OPTION,
+    frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
 ):
     "Can read from stdin."
     stdout = False
@@ -153,6 +168,8 @@ def prompt(
         user_input = "\n".join(sys.stdin.readlines())
         stdout = True
 
+    temperature, top_p, stop = validate_cli_parameters(temperature, top_p, stop)
+
     config = Config(config)
 
     if "gpt" in model:
@@ -161,6 +178,7 @@ def prompt(
             config=config,
             system=system,
             model=model,
+            stop=stop,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=top_p,
@@ -180,6 +198,7 @@ def prompt(
         single_prompt = Prompt(
             config=config,
             model=model,
+            stop=stop,
             max_tokens=max_tokens,
             temperature=temperature,
             top_p=top_p,
