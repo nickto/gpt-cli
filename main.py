@@ -62,6 +62,20 @@ MAX_TOKENS = typer.Option(
     help="Max number of tokens in completion.",
     rich_help_panel="Model parameters",
 )
+PRESENCE_PENALTY = typer.Option(
+    0,
+    min=-2,
+    max=2,
+    help="Penalty for repeating already existing words.",
+    rich_help_panel="Model parameters",
+)
+FREQUENCY_PENALTY = typer.Option(
+    0,
+    min=-2,
+    max=2,
+    help="Penalty for repeating already frequent words.",
+    rich_help_panel="Model parameters",
+)
 
 
 @app.command()
@@ -71,14 +85,14 @@ def init():
 
 @app.command()
 def chat(
-    config: typer.FileText = CONFIG_OPTION,
-    system: str = SYSTEM_OPTION,
+    config: typer.FileBinaryRead = CONFIG_OPTION,
     model: str = MODEL_OPTION,
+    system: str = SYSTEM_OPTION,
+    max_tokens: int = MAX_TOKENS,
     temperature: float = TEMPERATURE_OPTION,
     top_p: float = TOP_P_OPTION,
-    max_tokens: int = MAX_TOKENS,
-    # presence_penalty,
-    # frequency_penalty
+    presence_penalty: float = PRESENCE_PENALTY,
+    frequency_penalty: float = FREQUENCY_PENALTY,
 ):
     if "gpt" not in model:
         msg = Markdown(
@@ -106,9 +120,11 @@ def chat(
         config=config,
         system=system,
         model=model,
-        temperature=temperature,
         max_tokens=max_tokens,
+        temperature=temperature,
         top_p=top_p,
+        presence_penalty=presence_penalty,
+        frequency_penalty=frequency_penalty,
     )
     chat.start()
 
@@ -118,10 +134,12 @@ def prompt(
     config: typer.FileBinaryRead = CONFIG_OPTION,
     model: str = MODEL_OPTION,
     system: str = SYSTEM_OPTION,
-    n: int = N_OPTION,
-    temperature: float = TEMPERATURE_OPTION,
     max_tokens: int = MAX_TOKENS,
+    temperature: float = TEMPERATURE_OPTION,
     top_p: float = TOP_P_OPTION,
+    n: int = N_OPTION,
+    presence_penalty: float = PRESENCE_PENALTY,
+    frequency_penalty: float = FREQUENCY_PENALTY,
 ):
     "Can read from stdin."
     stdout = False
@@ -143,10 +161,12 @@ def prompt(
             config=config,
             system=system,
             model=model,
+            max_tokens=max_tokens,
             temperature=temperature,
             top_p=top_p,
             n=n,
-            max_tokens=max_tokens,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
         )
         completions = single_prompt.prompt(user_input)
     else:
@@ -160,10 +180,12 @@ def prompt(
         single_prompt = Prompt(
             config=config,
             model=model,
-            temperature=temperature,
-            n=n,
             max_tokens=max_tokens,
+            temperature=temperature,
             top_p=top_p,
+            n=n,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
         )
         completions = single_prompt.prompt(user_input)
 

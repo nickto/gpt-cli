@@ -21,10 +21,12 @@ class Chat:
         config: Config,
         system: str | None = None,
         model: str = "gpt-3.5-turbo",
-        temperature: float = 0.2,
-        n: int = 1,
         max_tokens: int = 2048,
-        stop_p: float = 1,
+        temperature: float = 0.2,
+        top_p: float = 1,
+        n: int = 1,
+        presence_penalty: float = 0,
+        frequency_penalty: float = 0,
     ):
         openai.api_key = config.get_api_key()
         self.config = config
@@ -34,10 +36,12 @@ class Chat:
             self.history.add_system(system)
         self.model = model
 
-        self.temperature = temperature
-        self.n = n
         self.max_tokens = max_tokens
+        self.temperature = temperature
         self.top_p = top_p
+        self.n = n
+        self.presence_penalty = presence_penalty
+        self.frequency_penalty = frequency_penalty
 
     def start(self):
         if self.n > 1:
@@ -61,10 +65,12 @@ class Chat:
                 ChatCompletion.create,
                 model=self.model,
                 messages=self.history.get_messages(),
-                n=1,
                 temperature=self.temperature,
+                n=1,
                 max_tokens=self.max_tokens,
                 top_p=self.top_p,
+                presence_penalty=self.presence_penalty,
+                frequency_penalty=self.frequency_penalty,
             )
 
             reply = completion.choices[0].message["content"]
@@ -84,8 +90,10 @@ class Chat:
             messages=self.history.get_messages(),
             temperature=self.temperature,
             n=self.n,
-            top_p=self.top_p,
             max_tokens=self.max_tokens,
+            top_p=self.top_p,
+            presence_penalty=self.presence_penalty,
+            frequency_penalty=self.frequency_penalty,
         )
 
         completions = [c.message["content"] for c in response.choices]
