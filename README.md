@@ -2,7 +2,7 @@
 
 ## TODO
 - [X] single prompt
-- [ ] more params
+- [X] more params
 - [ ] output to file
 - [ ] implement init
 - [ ] implement installation

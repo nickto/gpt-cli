@@ -9,7 +9,7 @@ from rich.markdown import Markdown
 from chatgpt_cli import pretty
 from chatgpt_cli.chat import Chat
 from chatgpt_cli.config import Config
-from chatgpt_cli.prompt import Prompt
+from chatgpt_cli.instruct import Instruct
 
 app = typer.Typer(rich_markup_mode="markdown")
 
@@ -74,6 +74,13 @@ STOP_OPTION = typer.Option(
     help="Sequences where the API will stop generating further tokens.",
     rich_help_panel="Model parameters",
 )
+OUTPUT_OPTION = typer.Option(
+    None,
+    "--out",
+    "-o",
+    help="Output the whole conversation to a file.",
+    metavar="PATH",
+)
 
 
 def validate_cli_parameters(
@@ -99,6 +106,7 @@ def init():
 @app.command()
 def chat(
     config: typer.FileBinaryRead = CONFIG_OPTION,
+    out: str = OUTPUT_OPTION,
     model: str = MODEL_OPTION,
     system: str = SYSTEM_OPTION,
     stop: Optional[List[str]] = STOP_OPTION,
@@ -131,6 +139,7 @@ def chat(
 
     chat = Chat(
         config=config,
+        out=out,
         system=system,
         model=model,
         stop=stop,
@@ -146,6 +155,7 @@ def chat(
 @app.command()
 def prompt(
     config: typer.FileBinaryRead = CONFIG_OPTION,
+    out: str = OUTPUT_OPTION,
     model: str = MODEL_OPTION,
     system: str = SYSTEM_OPTION,
     stop: Optional[List[str]] = STOP_OPTION,
@@ -190,13 +200,14 @@ def prompt(
     else:
         if max_tokens > 128:
             cont = typer.confirm(
-                "InstructGPT often generates repetitive answers"
+                "InstructGPT often generates repetitive answers "
                 + "exhausting max_tokens. Are you sure want to continue?"
             )
             if not cont:
                 raise typer.Abort()
-        single_prompt = Prompt(
+        single_prompt = Instruct(
             config=config,
+            out=out,
             model=model,
             stop=stop,
             max_tokens=max_tokens,
@@ -214,6 +225,10 @@ def prompt(
             if stdout:
                 header = "\n".join(["=" * 80, f"Completion {i:d}", "=" * 80])
                 print(header)
+                if out is not None:
+                    with open(out, "a+") as f:
+                        f.write(header)
+                        f.write("\n")
             else:
                 print(Markdown(f"# Completion {i:d}"))
         if stdout:

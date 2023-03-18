@@ -7,7 +7,7 @@ from typing import Dict, List
 import openai
 import tiktoken
 from openai import ChatCompletion
-from rich import print
+import rich
 from rich.markdown import Markdown
 from rich.prompt import Prompt
 
@@ -19,6 +19,7 @@ class Chat:
     def __init__(
         self,
         config: Config,
+        out: str = None,
         system: str | None = None,
         model: str = "gpt-3.5-turbo",
         stop: List[str] | None = None,
@@ -31,13 +32,15 @@ class Chat:
     ):
         openai.api_key = config.get_api_key()
         self.config = config
+        self.out = out
+        self.system = system
 
         self.history = History(model=model)
         if system is not None:
             self.history.add_system(system)
         self.model = model
 
-        self.stop = stop
+        self.stop = stop if stop else None
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.top_p = top_p
@@ -50,11 +53,16 @@ class Chat:
             msg = "cannot return more than 1 completion in a chat mode, hence will return only 1."
             pretty.warning(msg)
 
+        if self.out is not None:
+            with open(self.out, "w+") as f:
+                f.write("System:\n" + self.system)
+                f.write("\n\n")
+
         while True:
             prompt = Prompt
             prompt.prompt_suffix = "> "
             user_input = prompt.ask()
-            print()
+            rich.print()
 
             user_message = Message(
                 role=Role.user,
@@ -62,6 +70,11 @@ class Chat:
                 model=self.model,
             )
             self.history.add_message(user_message)
+
+            if self.out is not None:
+                with open(self.out, "a+") as f:
+                    f.write("User:\n" + user_input)
+                    f.write("\n\n")
 
             completion = pretty.typing_animation(
                 ChatCompletion.create,
@@ -77,7 +90,13 @@ class Chat:
             )
 
             reply = completion.choices[0].message["content"]
-            print(Markdown(reply))
+            rich.print(Markdown(reply))
+            rich.print()
+
+            if self.out is not None:
+                with open(self.out, "a+") as f:
+                    f.write("Assistant:\n" + reply)
+                    f.write("\n\n")
 
     def prompt(self, user_input: str) -> List[str]:
         user_message = Message(
@@ -100,6 +119,23 @@ class Chat:
         )
 
         completions = [c.message["content"] for c in response.choices]
+
+        if self.out is not None:
+            with open(self.out, "w+") as f:
+                if self.system is not None:
+                    f.write("User:\n")
+                    f.write(self.system + "\n\n")
+
+                f.write("User:\n")
+                f.write(user_input + "\n\n")
+                for i, completion in enumerate(completions):
+                    if len(completions) > 1:
+                        header = f"Assistant, completion {i}/{len(completions):d}:"
+                    else:
+                        header = "Assistant:"
+                    f.write(header + "\n")
+                    f.write(completion)
+
         return completions
 
 
