@@ -1,15 +1,15 @@
 # ChatGPT CLI
 
 ## TODO
-- single prompt
-- more params
-- output to file
-- implement init
-- implement installation
-- feed a file to use it as history
-- no-warning flag
-- improve token calculations by saving it from response
-- Capture CTRL + C
+- [X] single prompt
+- [ ] more params
+- [ ] output to file
+- [ ] implement init
+- [ ] implement installation
+- [ ] feed a file to use it as history
+- [ ] no-warning flag
+- [ ] improve token calculations by saving it from response
+- [ ] Capture CTRL + C
 
 ## Set up development environment
 

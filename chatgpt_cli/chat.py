@@ -23,17 +23,21 @@ class Chat:
         model: str = "gpt-3.5-turbo",
         temperature: float = 0.2,
         n: int = 1,
+        max_tokens: int = 2048,
+        stop_p: float = 1,
     ):
         openai.api_key = config.get_api_key()
-
         self.config = config
-        self.model = model
-        self.temperature = temperature
-        self.n = n
 
         self.history = History(model=model)
         if system is not None:
             self.history.add_system(system)
+        self.model = model
+
+        self.temperature = temperature
+        self.n = n
+        self.max_tokens = max_tokens
+        self.top_p = top_p
 
     def start(self):
         if self.n > 1:
@@ -59,6 +63,8 @@ class Chat:
                 messages=self.history.get_messages(),
                 n=1,
                 temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                top_p=self.top_p,
             )
 
             reply = completion.choices[0].message["content"]
@@ -78,6 +84,8 @@ class Chat:
             messages=self.history.get_messages(),
             temperature=self.temperature,
             n=self.n,
+            top_p=self.top_p,
+            max_tokens=self.max_tokens,
         )
 
         completions = [c.message["content"] for c in response.choices]

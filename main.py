@@ -39,15 +39,27 @@ N_OPTION = typer.Option(
     rich_help_panel="Model parameters",
 )
 TEMPERATURE_OPTION = typer.Option(
-    0.2,
-    help="Higher means more random answers.",
+    1,
+    help="Nucleus sampling: higher means more random output.",
     min=0,
     max=2,
+    rich_help_panel="Model parameters",
+)
+TOP_P_OPTION = typer.Option(
+    1,
+    help="Nucleus sampling: higher means more random output.",
+    min=0,
+    max=1,
     rich_help_panel="Model parameters",
 )
 MODEL_OPTION = typer.Option(
     "gpt-3.5-turbo",
     help="Model name, check [here](https://platform.openai.com/docs/models/model-endpoint-compatibility) for alternative models.",
+    rich_help_panel="Model parameters",
+)
+MAX_TOKENS = typer.Option(
+    2048,
+    help="Max number of tokens in completion.",
     rich_help_panel="Model parameters",
 )
 
@@ -63,6 +75,10 @@ def chat(
     system: str = SYSTEM_OPTION,
     model: str = MODEL_OPTION,
     temperature: float = TEMPERATURE_OPTION,
+    top_p: float = TOP_P_OPTION,
+    max_tokens: int = MAX_TOKENS,
+    # presence_penalty,
+    # frequency_penalty
 ):
     if "gpt" not in model:
         msg = Markdown(
@@ -80,6 +96,9 @@ def chat(
         cont = typer.confirm("Are you sure you want to continue?")
         if not cont:
             raise typer.Abort()
+    if temperature != 1 and top_p != 1:
+        msg = 'OpenAI recommends to change either "temperature" or "top_p", not both.'
+        pretty.warning(msg)
 
     config = Config(config)
 
@@ -88,6 +107,8 @@ def chat(
         system=system,
         model=model,
         temperature=temperature,
+        max_tokens=max_tokens,
+        top_p=top_p,
     )
     chat.start()
 
@@ -99,6 +120,8 @@ def prompt(
     system: str = SYSTEM_OPTION,
     n: int = N_OPTION,
     temperature: float = TEMPERATURE_OPTION,
+    max_tokens: int = MAX_TOKENS,
+    top_p: float = TOP_P_OPTION,
 ):
     "Can read from stdin."
     stdout = False
@@ -116,22 +139,33 @@ def prompt(
 
     if "gpt" in model:
         # Use /v1/chat/completions API with GPT-3.5 or GPT-4 models.
-        chat = Chat(
+        single_prompt = Chat(
             config=config,
             system=system,
             model=model,
             temperature=temperature,
+            top_p=top_p,
             n=n,
+            max_tokens=max_tokens,
         )
-        completions = chat.prompt(user_input)
+        completions = single_prompt.prompt(user_input)
     else:
-        foo = Prompt(
+        if max_tokens > 128:
+            cont = typer.confirm(
+                "InstructGPT often generates repetitive answers"
+                + "exhausting max_tokens. Are you sure want to continue?"
+            )
+            if not cont:
+                raise typer.Abort()
+        single_prompt = Prompt(
             config=config,
             model=model,
             temperature=temperature,
             n=n,
+            max_tokens=max_tokens,
+            top_p=top_p,
         )
-        completions = foo.prompt(user_input)
+        completions = single_prompt.prompt(user_input)
 
     for i, completion in enumerate(completions):
         if len(completions) > 1:
