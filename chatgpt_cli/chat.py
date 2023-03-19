@@ -111,12 +111,7 @@ class Chat(AbstractChat):
             ChatCompletion.create,
             model=self.model,
             messages=self.history.get_messages(),
-            max_tokens=self.max_tokens,
-            temperature=self.temperature,
-            top_p=self.top_p,
-            n=self.n,
-            presence_penalty=self.presence_penalty,
-            frequency_penalty=self.frequency_penalty,
+            **self.completion_params,
         )
 
         completions = [c.message["content"] for c in response.choices]

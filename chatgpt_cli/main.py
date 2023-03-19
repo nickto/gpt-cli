@@ -11,6 +11,7 @@ from chatgpt_cli.chat import Chat, History
 from chatgpt_cli.constants import CONFIG_DIR
 from chatgpt_cli.instruct import Instruct
 from chatgpt_cli.key import OpenaiApiKey
+from chatgpt_cli.abstract import AbstractCompletion
 
 app = typer.Typer(rich_markup_mode="markdown")
 
@@ -25,6 +26,7 @@ SYSTEM_OPTION = typer.Option(
     "You are a helpful assistant. Answer as concisely as possible.",
     help="System message for ChatGPT.",
     rich_help_panel="Model parameters",
+    show_default=False,
 )
 N_OPTION = typer.Option(
     1,
@@ -35,7 +37,7 @@ N_OPTION = typer.Option(
 )
 TEMPERATURE_OPTION = typer.Option(
     1,
-    help="Nucleus sampling: higher means more random output.",
+    help="Temperature sampling: higher means more random output.",
     min=0,
     max=2,
     rich_help_panel="Model parameters",
@@ -51,6 +53,7 @@ MODEL_OPTION = typer.Option(
     "gpt-3.5-turbo",
     help="Model name, check [here](https://platform.openai.com/docs/models/model-endpoint-compatibility) for alternative models.",
     rich_help_panel="Model parameters",
+    show_default=False,
 )
 MAX_TOKENS_OPTION = typer.Option(
     2048,
@@ -78,8 +81,6 @@ STOP_OPTION = typer.Option(
 )
 OUTPUT_OPTION = typer.Option(
     None,
-    "--out",
-    "-o",
     help="Output the whole conversation to a file.",
     metavar="PATH",
     show_default=False,
@@ -165,7 +166,10 @@ def chat(
     nowarning: bool = NOWARNING_OPTION,
     history: typer.FileText = HISTORY_OPTION,
 ):
-    "Start an interactive chat."
+    """Start an interactive chat.
+
+    For multiline inputs use backslashes.
+    """
     openai_api_key = OpenaiApiKey(openai_api_key)
 
     if "gpt" not in model and not noconfirm:
@@ -238,6 +242,8 @@ def prompt(
 
     Checks for prompt in the command line argument, then in standard input.
     If neither is present, asks interactively.
+
+    For multiline inputs use backslash.
     """
     openai_api_key = OpenaiApiKey(openai_api_key)
 
@@ -249,10 +255,7 @@ def prompt(
             # Read from piped stdin
             user_input = "\n".join(sys.stdin.readlines())
         else:
-            prompt = rich.prompt.Prompt
-            prompt.prompt_suffix = "> "
-            user_input = prompt.ask()
-            rich.print()
+            user_input = AbstractCompletion.ask_for_input()
 
     if not sys.stdout.isatty():
         # Write to piped stdout

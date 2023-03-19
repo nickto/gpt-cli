@@ -3,10 +3,12 @@ from typing import List
 import openai
 from openai import Completion
 
+from .abstract import AbstractPrompt
 from .key import OpenaiApiKey
+from chatgpt_cli import pretty
 
 
-class Instruct:
+class Instruct(AbstractPrompt):
     def __init__(
         self,
         api_key: OpenaiApiKey,
@@ -35,16 +37,11 @@ class Instruct:
         )
 
     def prompt(self, user_input: str) -> List[str]:
-        response = Completion.create(
+        response = pretty.typing_animation(
+            Completion.create,
             model=self.model,
             prompt=user_input,
-            stop=self.stop,
-            max_tokens=self.max_tokens,
-            top_p=self.top_p,
-            temperature=self.temperature,
-            n=self.n,
-            presence_penalty=self.presence_penalty,
-            frequency_penalty=self.frequency_penalty,
+            **self.completion_params,
         )
         completions = [c["text"] for c in response.choices]
 

@@ -29,13 +29,21 @@ class AbstractCompletion(ABC):
             assert -2 <= completion_params["frequency_penalty"] <= 2
         self.completion_params = completion_params
 
-    def ask_for_input(self) -> str:
+    @staticmethod
+    def ask_for_input() -> str:
         prompt = Prompt
         prompt.prompt_suffix = "> "
-        user_input = prompt.ask()
+        user_input = ""
+        while True:
+            user_input += prompt.ask()
+            if user_input.strip()[-1] != "\\":
+                break
+            else:
+                # Change \ for \n
+                user_input = user_input[:-1]
+                user_input += "\n"
         if user_input in ("exit", "quit", ":q"):
             raise typer.Exit()
-        rich.print()
 
         return user_input
 
