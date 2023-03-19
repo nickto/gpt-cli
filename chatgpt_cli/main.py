@@ -168,7 +168,7 @@ def chat(
 ):
     """Start an interactive chat.
 
-    For multiline inputs use backslashes.
+    For multiline inputs use backslashes. Type "exit" or press Ctrl + C to exit the chat.
     """
     openai_api_key = OpenaiApiKey(openai_api_key)
 
@@ -243,7 +243,7 @@ def prompt(
     Checks for prompt in the command line argument, then in standard input.
     If neither is present, asks interactively.
 
-    For multiline inputs use backslash.
+    For multiline inputs use backslashes.
     """
     openai_api_key = OpenaiApiKey(openai_api_key)
 
