@@ -13,7 +13,7 @@
 - [ ] Improve help
 - [X] add argument
 - [ ] add simple tests
-- [ ] remove configs, remove yaml, just store as plain text
+- [X] remove configs, remove yaml, just store as plain text
 
 ## Set up development environment
 

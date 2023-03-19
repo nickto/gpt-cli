@@ -1,24 +1,25 @@
-import sys
 import os
-import yaml
+import sys
 from typing import Dict, List, Optional, Tuple
-from pathlib import Path
+
 import rich
 import typer
 from rich.markdown import Markdown
 
 from chatgpt_cli import pretty
-from chatgpt_cli.chat import Chat, History, Role
-from chatgpt_cli.config import Config
+from chatgpt_cli.chat import Chat, History
+from chatgpt_cli.constants import CONFIG_DIR
 from chatgpt_cli.instruct import Instruct
+from chatgpt_cli.key import OpenaiApiKey
 
 app = typer.Typer(rich_markup_mode="markdown")
 
 
-CONFIG_OPTION = typer.Option(
-    os.path.join(Path.home(), ".config", "chatgpt-cli", "config.yaml"),
-    help="Path to ChatGPT CLI config file.",
+API_KEY_OPTION = typer.Option(
+    None,
+    help="OpenAI API key (run `chatgpt-cli init` to avoid passing it each time).",
     show_default=False,
+    envvar="OPENAI_API_KEY",
 )
 SYSTEM_OPTION = typer.Option(
     "You are a helpful assistant. Answer as concisely as possible.",
@@ -126,38 +127,31 @@ def validate_cli_parameters(
 @app.command()
 def init(noconfirm: bool = NOCONFIRM_OPTION):
     "Initialize the app: provide it with an OpenAI API key."
-    # Get config path and check if it exists
-    config_path = rich.prompt.Prompt.ask(
-        "Configuration file location", default=CONFIG_OPTION.default
-    )
-    if config_path != CONFIG_OPTION.default and not noconfirm:
-        cont = typer.confirm(
-            "You are using not default path and will have to provide via CLI "
-            "parameter (--config) every time. Do you want to continue?"
-        )
-        if not cont:
-            raise typer.Abort()
-    if os.path.exists(config_path) and not noconfirm:
-        cont = typer.confirm(
-            f"{config_path} file already exists. Do you want to overwrite it?"
-        )
-        if not cont:
-            raise typer.Abort()
-
     # Get API key
-    api_key = rich.prompt.Prompt.ask("OpenAI API key")
-    config = {"authentication": {"openai_api_key": api_key}}
+    openai_api_key = rich.prompt.Prompt.ask("OpenAI API key")
+
+    # Get config path and check if it exists
+    api_key_path = OpenaiApiKey.path
+    cont = typer.confirm(f"Will save OpenAI API key to {api_key_path}, okay?")
+    if not cont:
+        raise typer.Abort()
+
+    if os.path.exists(api_key_path) and not noconfirm:
+        cont = typer.confirm(
+            f"{api_key_path} file already exists. Do you want to overwrite it?"
+        )
+        if not cont:
+            raise typer.Abort()
 
     # Save
-    os.makedirs(os.path.split(config_path)[0], exist_ok=True)
-    yaml.safe_dump(config, open(config_path, "w+"))
-    os.chmod(config_path, 0o600)  # .rw-------
-    rich.print(f"Config file created at {config_path} successfully.")
+    os.makedirs(os.path.split(api_key_path)[0], exist_ok=True)
+    OpenaiApiKey(openai_api_key=openai_api_key).save()
+    rich.print(f"OpenAI API key was saved to {api_key_path} successfully.")
 
 
 @app.command()
 def chat(
-    config: typer.FileText = CONFIG_OPTION,
+    openai_api_key: str = API_KEY_OPTION,
     out: str = OUTPUT_OPTION,
     model: str = MODEL_OPTION,
     system: str = SYSTEM_OPTION,
@@ -172,6 +166,8 @@ def chat(
     history: typer.FileText = HISTORY_OPTION,
 ):
     "Start an interactive chat."
+    openai_api_key = OpenaiApiKey(openai_api_key)
+
     if "gpt" not in model and not noconfirm:
         msg = Markdown(
             " ".join(
@@ -204,9 +200,8 @@ def chat(
     temperature, top_p, stop = validate_cli_parameters(
         temperature, top_p, stop, nowarning
     )
-    config = Config(config)
     chat = Chat(
-        config=config,
+        api_key=openai_api_key,
         out=out,
         system=system,
         model=model,
@@ -223,7 +218,7 @@ def chat(
 
 @app.command()
 def prompt(
-    config: typer.FileBinaryRead = CONFIG_OPTION,
+    openai_api_key: str = API_KEY_OPTION,
     out: str = OUTPUT_OPTION,
     model: str = MODEL_OPTION,
     system: str = SYSTEM_OPTION,
@@ -244,6 +239,8 @@ def prompt(
     Checks for prompt in the command line argument, then in standard input.
     If neither is present, asks interactively.
     """
+    openai_api_key = OpenaiApiKey(openai_api_key)
+
     if prompt:
         user_input = prompt
         del prompt
@@ -270,9 +267,8 @@ def prompt(
     temperature, top_p, stop = validate_cli_parameters(
         temperature, top_p, stop, nowarning
     )
-    config = Config(config)
     kwargs = dict(
-        config=config,
+        api_key=openai_api_key,
         model=model,
         stop=stop,
         max_tokens=max_tokens,

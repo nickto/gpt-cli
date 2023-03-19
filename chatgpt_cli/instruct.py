@@ -1,15 +1,17 @@
-from .config import Config
 from typing import List
+
 import openai
 from openai import Completion
+
+from .key import OpenaiApiKey
 
 
 class Instruct:
     def __init__(
         self,
-        config: Config,
-        out: str = None,
+        api_key: OpenaiApiKey,
         model: str = "gpt-3.5-turbo",
+        out: str = None,
         stop: List[str] | None = None,
         max_tokens: int = 128,
         temperature: float = 0.2,
@@ -18,18 +20,19 @@ class Instruct:
         presence_penalty: float = 0,
         frequency_penalty: float = 0,
     ):
-        openai.api_key = config.get_api_key()
+        openai.api_key = api_key.get()
         self.model = model
-        self.config = config
         self.out = out
 
-        self.stop = stop if stop else None
-        self.max_tokens = max_tokens
-        self.temperature = temperature
-        self.top_p = top_p
-        self.n = n
-        self.presence_penalty = presence_penalty
-        self.frequency_penalty = frequency_penalty
+        super().__init__(
+            stop=stop,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            n=n,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
+        )
 
     def prompt(self, user_input: str) -> List[str]:
         response = Completion.create(

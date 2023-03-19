@@ -15,17 +15,17 @@ from rich.prompt import Prompt
 
 from chatgpt_cli import pretty
 
-from .config import Config
 from .abstract import AbstractChat
+from .key import OpenaiApiKey
 
 
 class Chat(AbstractChat):
     def __init__(
         self,
-        config: Config,
-        out: str = None,
-        system: str | None = None,
+        api_key: OpenaiApiKey,
         model: str = "gpt-3.5-turbo",
+        system: str | None = None,
+        out: str = None,
         history: History = None,
         stop: List[str] | None = None,
         max_tokens: int = 2048,
@@ -35,28 +35,30 @@ class Chat(AbstractChat):
         presence_penalty: float = 0,
         frequency_penalty: float = 0,
     ):
-        openai.api_key = config.get_api_key()
-        self.config = config
-        self.out = out
+        openai.api_key = api_key.get()
         self.system = system
+        self.model = model
+        self.out = out
 
         if history:
             self.history = history
         else:
             self.history = History(model=model)
 
+        # Set system only not present in history. This could happen if history
+        # is loaded from a file.
         if self.history.system.content is not None and system:
             self.history.add_system(system)
-        self.system = system
-        self.model = model
 
-        self.stop = stop if stop else None
-        self.max_tokens = max_tokens
-        self.temperature = temperature
-        self.top_p = top_p
-        self.n = n
-        self.presence_penalty = presence_penalty
-        self.frequency_penalty = frequency_penalty
+        super().__init__(
+            stop=stop,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            n=n,
+            presence_penalty=presence_penalty,
+            frequency_penalty=frequency_penalty,
+        )
 
     def _need_user_input(self) -> bool:
         if len(self.history.messages) == 0:
@@ -67,7 +69,7 @@ class Chat(AbstractChat):
         return last_message.role != Role.user
 
     def start(self):
-        if self.n > 1:
+        if self.completion_params["n"] > 1:
             msg = "Cannot use more than 1 completion in interactive chat mode."
             raise ValueError(msg)
 
@@ -90,13 +92,7 @@ class Chat(AbstractChat):
                 ChatCompletion.create,
                 model=self.model,
                 messages=self.history.get_messages(),
-                stop=self.stop,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                top_p=self.top_p,
-                n=1,
-                presence_penalty=self.presence_penalty,
-                frequency_penalty=self.frequency_penalty,
+                **self.completion_params,
             )
 
             assistant_reply = completion.choices[0].message["content"]
