@@ -11,7 +11,7 @@
 - [X] no-warning flag
 - [X] Check how does it look to otput formatyted oiutput to file
 - [ ] Improve help
-- [ ] add argument
+- [X] add argument
 - [ ] add simple tests
 - [ ] remove configs, remove yaml, just store as plain text
 
