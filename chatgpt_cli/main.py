@@ -263,7 +263,3 @@ def prompt(
             print(completion)
         else:
             print(Markdown(completion))
-
-
-if __name__ == "__main__":
-    app()

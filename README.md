@@ -6,10 +6,10 @@
 - [X] output to file
 - [X] implement init
 - [ ] implement installation
+- [ ] Capture CTRL + C
 - [ ] feed a file to use it as history
 - [ ] no-warning flag
 - [ ] improve token calculations by saving it from response
-- [ ] Capture CTRL + C
 
 ## Set up development environment
 
