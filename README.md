@@ -1,19 +1,12 @@
 # ChatGPT CLI
 
-## TODO
-- [X] single prompt
-- [X] more params
-- [X] output to file
-- [X] implement init
-- [X] implement installation
-- [X] Capture ~~CTRL + C~~ and exit
-- [X] feed a file to use it as history
-- [X] no-warning flag
-- [X] Check how does it look to otput formatyted oiutput to file
-- [ ] Improve help
-- [X] add argument
-- [ ] add simple tests
-- [X] remove configs, remove yaml, just store as plain text
+## Install
+
+The easiest is to install it with [pipx](https://pypa.github.io/pipx/):
+
+```bash
+pipx install git+https://gitlab.com/nickto/chatgpt-cli.git
+```
 
 ## Set up development environment
 
