@@ -102,6 +102,7 @@ def validate_cli_parameters(
 
 @app.command()
 def init():
+    "Initialize the app: provide it with an OpenAI API key."
     # Get config path and check if it exists
     config_path = rich.prompt.Prompt.ask(
         "Configuration file location", default=CONFIG_OPTION.default
@@ -144,6 +145,7 @@ def chat(
     presence_penalty: float = PRESENCE_PENALTY_OPTION,
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
 ):
+    "Start an interactive chat."
     if "gpt" not in model:
         msg = Markdown(
             " ".join(
@@ -194,7 +196,7 @@ def prompt(
     presence_penalty: float = PRESENCE_PENALTY_OPTION,
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
 ):
-    "Can read from stdin."
+    "Ask a single question (can read from stdin, write to stdout, show multiple options)."
     stdout = False
     if sys.stdin.isatty():
         # No stdin, show prompt
