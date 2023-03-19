@@ -94,6 +94,10 @@ class Chat:
             )
 
             reply = completion.choices[0].message["content"]
+            self.history.add_assistant(
+                content=reply,
+                n_tokens=completion["usage"]["completion_tokens"],
+            )
             rich.print(Markdown(reply))
             rich.print()
 

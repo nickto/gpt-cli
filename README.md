@@ -9,7 +9,6 @@
 - [X] Capture ~~CTRL + C~~ and exit
 - [ ] feed a file to use it as history
 - [X] no-warning flag
-- [ ] improve token calculations by saving it from response
 
 ## Set up development environment
 
