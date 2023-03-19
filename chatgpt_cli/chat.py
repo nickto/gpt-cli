@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from enum import Enum
 from pprint import pprint
-from typing import Dict, List
+from typing import IO, Dict, List
 
 import openai
 import rich
@@ -24,6 +25,7 @@ class Chat:
         out: str = None,
         system: str | None = None,
         model: str = "gpt-3.5-turbo",
+        history: History = None,
         stop: List[str] | None = None,
         max_tokens: int = 2048,
         temperature: float = 0.2,
@@ -37,8 +39,12 @@ class Chat:
         self.out = out
         self.system = system
 
-        self.history = History(model=model)
-        if system is not None:
+        if history:
+            self.history = history
+        else:
+            self.history = History(model=model)
+
+        if system:
             self.history.add_system(system)
         self.model = model
 
@@ -127,23 +133,6 @@ class Chat:
         )
 
         completions = [c.message["content"] for c in response.choices]
-
-        if self.out is not None:
-            with open(self.out, "w+") as f:
-                if self.system is not None:
-                    f.write("User:\n")
-                    f.write(self.system + "\n\n")
-
-                f.write("User:\n")
-                f.write(user_input + "\n\n")
-                for i, completion in enumerate(completions):
-                    if len(completions) > 1:
-                        header = f"Assistant, completion {i}/{len(completions):d}:"
-                    else:
-                        header = "Assistant:"
-                    f.write(header + "\n")
-                    f.write(completion)
-
         return completions
 
 
@@ -240,7 +229,7 @@ class History:
             else:
                 break
 
-        if self.system.content is not None:
+        if self.system.content:
             history.insert(0, self.system)
 
         return history
@@ -260,6 +249,49 @@ class History:
     ) -> Dict[str, str]:
         history = self.get_history(max_tokens=max_tokens, max_messages=max_messages)
         return self.history2dict(history)
+
+    @staticmethod
+    def _is_system_line(text: str) -> bool:
+        return text == "System:\n"
+
+    @staticmethod
+    def _is_user_line(text: str) -> bool:
+        return text == "User:\n"
+
+    @staticmethod
+    def _is_assistant_line(text: str) -> bool:
+        return text == "Assistant:\n"
+
+    def load(self, file: IO) -> History:
+        self.messages: List[Message] = []
+        content: str | None = None
+        for line in file.readlines():
+            if self._is_system_line(line):
+                if content:
+                    content = content.strip()
+                    self.add_message(
+                        Message(role=role, content=content, model=self.model)
+                    )
+                role = Role.system
+                content = ""
+            elif self._is_user_line(line):
+                if content:
+                    content = content.strip()
+                    self.add_message(
+                        Message(role=role, content=content, model=self.model)
+                    )
+                role = Role.user
+                content = ""
+            elif self._is_assistant_line(line):
+                if content:
+                    content = content.strip()
+                    self.add_message(
+                        Message(role=role, content=content, model=self.model)
+                    )
+                role = Role.assistant
+                content = ""
+            else:
+                content += line
 
 
 if __name__ == "__main__":
@@ -313,3 +345,9 @@ if __name__ == "__main__":
     history.add_assistant("Yes I am sure.")
     assert len(history.get_history(max_tokens=15)) == 3  # 3 because have system
     pprint(history.get_messages(max_tokens=15))
+
+    # Load history from file
+    print()
+    history = History(model="gpt-3.5-turbo")
+    history.load(open("history.txt", "r"))
+    print(history.get_messages())

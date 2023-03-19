@@ -5,7 +5,6 @@ from typing import Dict, List, Optional, Tuple
 from pathlib import Path
 import rich
 import typer
-from rich import print
 from rich.markdown import Markdown
 
 from chatgpt_cli import pretty
@@ -19,7 +18,7 @@ app = typer.Typer(rich_markup_mode="markdown")
 CONFIG_OPTION = typer.Option(
     os.path.join(Path.home(), ".config", "chatgpt-cli", "config.yaml"),
     help="Path to ChatGPT CLI config file.",
-    envvar="CHATGPTCLI_CONFIG",
+    show_default=False,
 )
 SYSTEM_OPTION = typer.Option(
     "You are a helpful assistant. Answer as concisely as possible.",
@@ -82,6 +81,7 @@ OUTPUT_OPTION = typer.Option(
     "-o",
     help="Output the whole conversation to a file.",
     metavar="PATH",
+    show_default=False,
 )
 NOWARNING_OPTION = typer.Option(
     False,
@@ -92,6 +92,16 @@ NOCONFIRM_OPTION = typer.Option(
     False,
     "--noconfirm",
     help="Answer yes to all confirmation messages.",
+)
+PROMPT_ARGUMENT = typer.Argument(
+    "",
+    help="Prompt for a model.",
+    metavar="TEXT",
+)
+HISTORY_OPTION = typer.Option(
+    None,
+    help="Path to previous outputs, to use as chat history.",
+    show_default=False,
 )
 
 
@@ -142,12 +152,12 @@ def init(noconfirm: bool = NOCONFIRM_OPTION):
     os.makedirs(os.path.split(config_path)[0], exist_ok=True)
     yaml.safe_dump(config, open(config_path, "w+"))
     os.chmod(config_path, 0o600)  # .rw-------
-    print(f"Config file created at {config_path} successfully.")
+    rich.print(f"Config file created at {config_path} successfully.")
 
 
 @app.command()
 def chat(
-    config: typer.FileBinaryRead = CONFIG_OPTION,
+    config: typer.FileText = CONFIG_OPTION,
     out: str = OUTPUT_OPTION,
     model: str = MODEL_OPTION,
     system: str = SYSTEM_OPTION,
@@ -159,6 +169,7 @@ def chat(
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
     noconfirm: bool = NOCONFIRM_OPTION,
     nowarning: bool = NOWARNING_OPTION,
+    history: typer.FileText = HISTORY_OPTION,
 ):
     "Start an interactive chat."
     if "gpt" not in model and not noconfirm:
@@ -173,7 +184,7 @@ def chat(
                 ]
             )
         )
-        print(msg)
+        rich.print(msg)
         cont = typer.confirm("Are you sure you want to continue?")
         if not cont:
             raise typer.Abort()
@@ -214,75 +225,86 @@ def prompt(
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
     noconfirm: bool = NOCONFIRM_OPTION,
     nowarning: bool = NOWARNING_OPTION,
+    prompt: Optional[str] = PROMPT_ARGUMENT,
 ):
-    "Ask a single question (can read from stdin, write to stdout, show multiple options)."
-    stdout = False
-    if sys.stdin.isatty():
-        # No stdin, show prompt
-        prompt = rich.prompt.Prompt
-        prompt.prompt_suffix = "> "
-        user_input = prompt.ask()
-        print()
+    """
+    Ask a single question.
+
+    Checks for prompt in the command line argument, then in standard input.
+    If neither is present, asks interactively.
+    """
+    if prompt:
+        user_input = prompt
+        del prompt
     else:
-        user_input = "\n".join(sys.stdin.readlines())
-        stdout = True
+        if not sys.stdin.isatty():
+            # Read from piped stdin
+            user_input = "\n".join(sys.stdin.readlines())
+        else:
+            prompt = rich.prompt.Prompt
+            prompt.prompt_suffix = "> "
+            user_input = prompt.ask()
+            rich.print()
+
+    if not sys.stdout.isatty():
+        # Write to piped stdout
+        print("User:")
+        print(user_input)
+
+    if out:
+        with open(out, "w+") as f:
+            f.write("User:\n")
+            f.write(user_input + "\n\n")
 
     temperature, top_p, stop = validate_cli_parameters(
         temperature, top_p, stop, nowarning
     )
-
     config = Config(config)
-
+    kwargs = dict(
+        config=config,
+        model=model,
+        stop=stop,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        n=n,
+        presence_penalty=presence_penalty,
+        frequency_penalty=frequency_penalty,
+    )
     if "gpt" in model:
         # Use /v1/chat/completions API with GPT-3.5 or GPT-4 models.
-        single_prompt = Chat(
-            config=config,
-            system=system,
-            model=model,
-            stop=stop,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            n=n,
-            presence_penalty=presence_penalty,
-            frequency_penalty=frequency_penalty,
-        )
+        kwargs["system"] = system
+        single_prompt = Chat(**kwargs)
         completions = single_prompt.prompt(user_input)
     else:
         if max_tokens > 128 and not noconfirm:
             cont = typer.confirm(
                 "InstructGPT often generates repetitive answers "
-                + "exhausting max_tokens. Are you sure want to continue?"
+                "exhausting max_tokens. Are you sure want to continue?"
             )
             if not cont:
                 raise typer.Abort()
-        single_prompt = Instruct(
-            config=config,
-            out=out,
-            model=model,
-            stop=stop,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            top_p=top_p,
-            n=n,
-            presence_penalty=presence_penalty,
-            frequency_penalty=frequency_penalty,
-        )
+        single_prompt = Instruct(**kwargs)
         completions = single_prompt.prompt(user_input)
 
     for i, completion in enumerate(completions):
-        if len(completions) > 1:
-            # Add header for each completions
-            if stdout:
-                header = "\n".join(["=" * 80, f"Completion {i:d}", "=" * 80])
-                print(header)
-                if out is not None:
-                    with open(out, "a+") as f:
-                        f.write(header)
-                        f.write("\n")
-            else:
-                print(Markdown(f"# Completion {i:d}"))
-        if stdout:
-            print(completion)
+        if len(completions) == 1:
+            header = "Assistant:"
+            header_md = ""
         else:
-            print(Markdown(completion))
+            header = f"Assistant, completion {i:d}:"
+            header_md = f"# Completion {i:d}\n"
+
+        if sys.stdout.isatty():
+            # Terminal output, so format
+            rich.print(Markdown(header_md), end="")
+            rich.print(Markdown(completion))
+        else:
+            # Stdout output, skip formatting
+            print(header)
+            print(completion)
+
+        if out:
+            with open(out, "a+") as f:
+                f.write(header + "\n")
+                f.write(completion + "\n\n")

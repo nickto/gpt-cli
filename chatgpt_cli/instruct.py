@@ -45,7 +45,7 @@ class Instruct:
         )
         completions = [c["text"] for c in response.choices]
 
-        if self.out is not None:
+        if self.out:
             with open(self.out, "w+") as f:
                 f.write("User:\n")
                 f.write(user_input + "\n\n")

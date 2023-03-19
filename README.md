@@ -9,6 +9,11 @@
 - [X] Capture ~~CTRL + C~~ and exit
 - [ ] feed a file to use it as history
 - [X] no-warning flag
+- [ ] Check how does it look to otput formatyted oiutput to file
+- [ ] Improve help
+- [ ] add argument
+- [ ] add simple tests
+- [ ] remove configs, remove yaml, just store as plain text
 
 ## Set up development environment
 
