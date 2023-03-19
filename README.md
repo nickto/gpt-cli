@@ -6,7 +6,7 @@
 - [X] output to file
 - [X] implement init
 - [X] implement installation
-- [ ] Capture CTRL + C and exit
+- [X] Capture ~~CTRL + C~~ and exit
 - [ ] feed a file to use it as history
 - [ ] no-warning flag
 - [ ] improve token calculations by saving it from response
