@@ -1,7 +1,0 @@
-general:
-  defaults:
-    model: gpt-3.5-turbo
-    temperature: 0.2
-# Uncomment and insert your API KEY to set it up using config file:
-# authentication:
-#   openai_api_key: <YOUR OPEN AI API KEY>

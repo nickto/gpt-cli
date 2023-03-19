@@ -1,6 +1,8 @@
 import sys
+import os
+import yaml
 from typing import Dict, List, Optional, Tuple
-
+from pathlib import Path
 import rich
 import typer
 from rich import print
@@ -15,7 +17,7 @@ app = typer.Typer(rich_markup_mode="markdown")
 
 
 CONFIG_OPTION = typer.Option(
-    "config.yaml",
+    os.path.join(Path.home(), ".config", "chatgpt-cli", "config.yaml"),
     help="Path to ChatGPT CLI config file.",
     envvar="CHATGPTCLI_CONFIG",
 )
@@ -100,7 +102,33 @@ def validate_cli_parameters(
 
 @app.command()
 def init():
+    # Get config path and check if it exists
+    config_path = rich.prompt.Prompt.ask(
+        "Configuration file location", default=CONFIG_OPTION.default
+    )
+    if config_path != CONFIG_OPTION.default:
+        cont = typer.confirm(
+            "You are using not default path and will have to provide via CLI "
+            "parameter (--config) every time. Do you want to continue?"
+        )
+        if not cont:
+            raise typer.Abort()
+    if os.path.exists(config_path):
+        cont = typer.confirm(
+            f"{config_path} file already exists. Do you want to overwrite it?"
+        )
+        if not cont:
+            raise typer.Abort()
+
+    # Get API key
     api_key = rich.prompt.Prompt.ask("OpenAI API key")
+    config = {"authentication": {"openai_api_key": api_key}}
+
+    # Save
+    os.makedirs(os.path.split(config_path)[0], exist_ok=True)
+    yaml.safe_dump(config, open(config_path, "w+"))
+    os.chmod(config_path, 0o600)  # .rw-------
+    print(f"Config file created at {config_path} successfully.")
 
 
 @app.command()

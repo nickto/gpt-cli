@@ -3,8 +3,8 @@
 ## TODO
 - [X] single prompt
 - [X] more params
-- [ ] output to file
-- [ ] implement init
+- [X] output to file
+- [X] implement init
 - [ ] implement installation
 - [ ] feed a file to use it as history
 - [ ] no-warning flag
