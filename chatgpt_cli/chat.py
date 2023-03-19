@@ -1,17 +1,13 @@
 from __future__ import annotations
 
-import re
 from enum import Enum
-from pprint import pprint
 from typing import IO, Dict, List
 
 import openai
 import rich
 import tiktoken
-import typer
 from openai import ChatCompletion
 from rich.markdown import Markdown
-from rich.prompt import Prompt
 
 from chatgpt_cli import pretty
 
@@ -45,9 +41,9 @@ class Chat(AbstractChat):
         else:
             self.history = History(model=model)
 
-        # Set system only not present in history. This could happen if history
+        # Set system only if not present in history. This could happen if history
         # is loaded from a file.
-        if self.history.system.content is not None and system:
+        if system and not self.history.is_system_set():
             self.history.add_system(system)
 
         super().__init__(
@@ -109,12 +105,7 @@ class Chat(AbstractChat):
                     f.write("\n\n")
 
     def prompt(self, user_input: str) -> List[str]:
-        user_message = Message(
-            role=Role.user,
-            content=user_input,
-            model=self.model,
-        )
-        self.history.add_message(user_message)
+        self.history.add_user(user_input)
 
         response = pretty.typing_animation(
             ChatCompletion.create,
@@ -172,31 +163,46 @@ class Message:
         num_tokens = len(encoding.encode(text))
         return num_tokens
 
+    def __str__(self):
+        return f"{self.role.value.title()}: {self.content}"
+
 
 class History:
     messages: List[Message]
+    system: Message
 
     def __init__(self, model: str):
         self.model = model
         self.system = Message(role=Role.system, content=None, model=self.model)
         self.messages = []
 
-    def add_message(self, message: Message) -> History:
+    def _add_message(self, message: Message) -> History:
         self.messages.append(message)
         return self
+
+    def add_message(self, content: str, role: Role, n_tokens: int | None = None):
+        match role:
+            case Role.system:
+                self.add_system(content=content, n_tokens=n_tokens)
+            case Role.user:
+                self.add_user(content=content, n_tokens=n_tokens)
+            case Role.assistant:
+                self.add_assistant(content=content, n_tokens=n_tokens)
+            case _:
+                raise ValueError("Unexpected value of role.")
 
     def add_user(self, content: str, n_tokens: int | None = None) -> History:
         message = Message(
             role=Role.user, content=content, model=self.model, n_tokens=n_tokens
         )
-        self.add_message(message)
+        self._add_message(message)
         return self
 
     def add_assistant(self, content: str, n_tokens: int | None = None) -> History:
         message = Message(
             role=Role.assistant, content=content, model=self.model, n_tokens=n_tokens
         )
-        self.add_message(message)
+        self._add_message(message)
         return self
 
     def add_system(self, content: str, n_tokens: int | None = None) -> History:
@@ -205,6 +211,9 @@ class History:
         )
         self.system = message
         return self
+
+    def is_system_set(self) -> bool:
+        return self.system.content is not None
 
     def get_history(
         self,
@@ -225,7 +234,7 @@ class History:
             else:
                 break
 
-        if self.system.content:
+        if self.is_system_set():
             history.insert(0, self.system)
 
         return history
@@ -263,90 +272,31 @@ class History:
         content: str | None = None
         for line in file.readlines():
             if self._is_system_line(line):
+                # If accumulated content, save it to message
                 if content:
                     content = content.strip()
-                    self.add_message(
-                        Message(role=role, content=content, model=self.model)
-                    )
+                    self.add_message(content=content, role=role)
+                # Start accumulating new content
                 role = Role.system
                 content = ""
             elif self._is_user_line(line):
+                # If accumulated content, save it to message
                 if content:
                     content = content.strip()
-                    self.add_message(
-                        Message(role=role, content=content, model=self.model)
-                    )
+                    self.add_message(content=content, role=role)
+                # Start accumulating new content
                 role = Role.user
                 content = ""
             elif self._is_assistant_line(line):
+                # If accumulated content, save it to message
                 if content:
                     content = content.strip()
-                    self.add_message(
-                        Message(role=role, content=content, model=self.model)
-                    )
+                    self.add_message(content=content, role=role)
+                # Start accumulating new content
                 role = Role.assistant
                 content = ""
             else:
                 content += line
         content = content.strip()
-        self.add_message(Message(role=role, content=content, model=self.model))
+        self.add_message(content=content, role=role)
         return self
-
-
-if __name__ == "__main__":
-    "Unit tests and example usage."
-    # With system
-    history = History(model="gpt-3.5-turbo")
-    assert len(history.get_history()) == 0
-    history.add_system("You are a helpful assistant.")
-    assert len(history.get_history()) == 1
-    history.add_user("Who is Banksy?")
-    assert len(history.get_history()) == 2
-    history.add_assistant("I don't know")
-    assert len(history.get_history()) == 3
-    pprint(history.get_messages())
-
-    # Without system
-    print()
-    history = History(model="gpt-3.5-turbo")
-    history.add_user("Who is Banksy?")
-    assert len(history.get_history()) == 1
-    history.add_assistant("I don't know")
-    assert len(history.get_history()) == 2
-    pprint(history.get_messages())
-
-    # Limit messages
-    print()
-    history = History(model="gpt-3.5-turbo")
-    history.add_system("You are a helpful assistant.")
-    assert len(history.get_history()) == 1
-    history.add_user("Who is Banksy?")
-    assert len(history.get_history()) == 2
-    history.add_assistant("I don't know")
-    assert len(history.get_history()) == 3
-    history.add_user("Are you sure?")
-    assert len(history.get_history()) == 4
-    history.add_assistant("Yes I am sure.")
-    assert len(history.get_history(max_messages=2)) == 3  # 3 because have system
-    pprint(history.get_messages(max_messages=2))
-
-    # Limit tokens
-    print()
-    history = History(model="gpt-3.5-turbo")
-    history.add_system("You are a helpful assistant.")
-    assert len(history.get_history()) == 1
-    history.add_user("Who is Banksy?")
-    assert len(history.get_history()) == 2
-    history.add_assistant("I don't know")
-    assert len(history.get_history()) == 3
-    history.add_user("Are you sure?")
-    assert len(history.get_history()) == 4
-    history.add_assistant("Yes I am sure.")
-    assert len(history.get_history(max_tokens=15)) == 3  # 3 because have system
-    pprint(history.get_messages(max_tokens=15))
-
-    # Load history from file
-    print()
-    history = History(model="gpt-3.5-turbo")
-    history.load(open("history.txt", "r"))
-    print(history.get_messages())

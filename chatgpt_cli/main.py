@@ -189,7 +189,7 @@ def chat(
         history = History(model=model).load(history)
         # Check that there are no contradictions between the system in the
         # history and the history supplied via command line
-        if history.system.content is not None and system is not None:
+        if history.is_system_set() and system is not None:
             msg = (
                 "ignoring system from --system parameter: system"
                 "message present in history."
