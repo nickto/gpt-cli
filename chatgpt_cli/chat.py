@@ -5,13 +5,15 @@ from pprint import pprint
 from typing import Dict, List
 
 import openai
-import tiktoken
-from openai import ChatCompletion
 import rich
+import tiktoken
+import typer
+from openai import ChatCompletion
 from rich.markdown import Markdown
 from rich.prompt import Prompt
 
 from chatgpt_cli import pretty
+
 from .config import Config
 
 
@@ -62,6 +64,8 @@ class Chat:
             prompt = Prompt
             prompt.prompt_suffix = "> "
             user_input = prompt.ask()
+            if user_input in ("exit", "quit", ":q"):
+                raise typer.Exit()
             rich.print()
 
             user_message = Message(
