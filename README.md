@@ -7,9 +7,9 @@
 - [X] implement init
 - [X] implement installation
 - [X] Capture ~~CTRL + C~~ and exit
-- [ ] feed a file to use it as history
+- [X] feed a file to use it as history
 - [X] no-warning flag
-- [ ] Check how does it look to otput formatyted oiutput to file
+- [X] Check how does it look to otput formatyted oiutput to file
 - [ ] Improve help
 - [ ] add argument
 - [ ] add simple tests
