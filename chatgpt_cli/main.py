@@ -83,16 +83,29 @@ OUTPUT_OPTION = typer.Option(
     help="Output the whole conversation to a file.",
     metavar="PATH",
 )
+NOWARNING_OPTION = typer.Option(
+    False,
+    "--nowarning",
+    help="Do not show warnings.",
+)
+NOCONFIRM_OPTION = typer.Option(
+    False,
+    "--noconfirm",
+    help="Answer yes to all confirmation messages.",
+)
 
 
 def validate_cli_parameters(
-    temperature: float, top_p: float, stop: List[str] | None
+    temperature: float,
+    top_p: float,
+    stop: List[str] | None,
+    nowarning: bool = False,
 ) -> Tuple[float, float, List[str] | None]:
-    if temperature != 1 and top_p != 1:
+    if temperature != 1 and top_p != 1 and not nowarning:
         msg = 'OpenAI recommends to change either "temperature" or "top_p", not both.'
         pretty.warning(msg)
 
-    if stop is not None and len(stop) > 4:
+    if stop is not None and len(stop) > 4 and not nowarning:
         msg = "More than 4 stop sequences provided. Will use the first 4."
         pretty.warning(msg)
         stop = stop[:4]
@@ -101,20 +114,20 @@ def validate_cli_parameters(
 
 
 @app.command()
-def init():
+def init(noconfirm: bool = NOCONFIRM_OPTION):
     "Initialize the app: provide it with an OpenAI API key."
     # Get config path and check if it exists
     config_path = rich.prompt.Prompt.ask(
         "Configuration file location", default=CONFIG_OPTION.default
     )
-    if config_path != CONFIG_OPTION.default:
+    if config_path != CONFIG_OPTION.default and not noconfirm:
         cont = typer.confirm(
             "You are using not default path and will have to provide via CLI "
             "parameter (--config) every time. Do you want to continue?"
         )
         if not cont:
             raise typer.Abort()
-    if os.path.exists(config_path):
+    if os.path.exists(config_path) and not noconfirm:
         cont = typer.confirm(
             f"{config_path} file already exists. Do you want to overwrite it?"
         )
@@ -144,9 +157,11 @@ def chat(
     top_p: float = TOP_P_OPTION,
     presence_penalty: float = PRESENCE_PENALTY_OPTION,
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
+    noconfirm: bool = NOCONFIRM_OPTION,
+    nowarning: bool = NOWARNING_OPTION,
 ):
     "Start an interactive chat."
-    if "gpt" not in model:
+    if "gpt" not in model and not noconfirm:
         msg = Markdown(
             " ".join(
                 [
@@ -163,7 +178,9 @@ def chat(
         if not cont:
             raise typer.Abort()
 
-    temperature, top_p, stop = validate_cli_parameters(temperature, top_p, stop)
+    temperature, top_p, stop = validate_cli_parameters(
+        temperature, top_p, stop, nowarning
+    )
 
     config = Config(config)
 
@@ -195,6 +212,8 @@ def prompt(
     n: int = N_OPTION,
     presence_penalty: float = PRESENCE_PENALTY_OPTION,
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
+    noconfirm: bool = NOCONFIRM_OPTION,
+    nowarning: bool = NOWARNING_OPTION,
 ):
     "Ask a single question (can read from stdin, write to stdout, show multiple options)."
     stdout = False
@@ -208,7 +227,9 @@ def prompt(
         user_input = "\n".join(sys.stdin.readlines())
         stdout = True
 
-    temperature, top_p, stop = validate_cli_parameters(temperature, top_p, stop)
+    temperature, top_p, stop = validate_cli_parameters(
+        temperature, top_p, stop, nowarning
+    )
 
     config = Config(config)
 
@@ -228,7 +249,7 @@ def prompt(
         )
         completions = single_prompt.prompt(user_input)
     else:
-        if max_tokens > 128:
+        if max_tokens > 128 and not noconfirm:
             cont = typer.confirm(
                 "InstructGPT often generates repetitive answers "
                 + "exhausting max_tokens. Are you sure want to continue?"

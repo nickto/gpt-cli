@@ -8,7 +8,7 @@
 - [X] implement installation
 - [X] Capture ~~CTRL + C~~ and exit
 - [ ] feed a file to use it as history
-- [ ] no-warning flag
+- [X] no-warning flag
 - [ ] improve token calculations by saving it from response
 
 ## Set up development environment
