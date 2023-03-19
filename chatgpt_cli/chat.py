@@ -16,9 +16,10 @@ from rich.prompt import Prompt
 from chatgpt_cli import pretty
 
 from .config import Config
+from .abstract import AbstractChat
 
 
-class Chat:
+class Chat(AbstractChat):
     def __init__(
         self,
         config: Config,
@@ -44,8 +45,9 @@ class Chat:
         else:
             self.history = History(model=model)
 
-        if system:
+        if self.history.system.content is not None and system:
             self.history.add_system(system)
+        self.system = system
         self.model = model
 
         self.stop = stop if stop else None
@@ -56,35 +58,33 @@ class Chat:
         self.presence_penalty = presence_penalty
         self.frequency_penalty = frequency_penalty
 
+    def _need_user_input(self) -> bool:
+        if len(self.history.messages) == 0:
+            # First message should be user input
+            return True
+        # Need input, if last message was not user message
+        last_message = self.history.messages[-1]
+        return last_message.role != Role.user
+
     def start(self):
         if self.n > 1:
-            msg = "cannot return more than 1 completion in a chat mode, hence will return only 1."
-            pretty.warning(msg)
+            msg = "Cannot use more than 1 completion in interactive chat mode."
+            raise ValueError(msg)
 
-        if self.out is not None:
+        if self.out and self.system:
             with open(self.out, "w+") as f:
                 f.write("System:\n" + self.system)
                 f.write("\n\n")
 
         while True:
-            prompt = Prompt
-            prompt.prompt_suffix = "> "
-            user_input = prompt.ask()
-            if user_input in ("exit", "quit", ":q"):
-                raise typer.Exit()
-            rich.print()
+            if self._need_user_input():
+                user_input = self.ask_for_input()
+                self.history.add_user(content=user_input)
 
-            user_message = Message(
-                role=Role.user,
-                content=user_input,
-                model=self.model,
-            )
-            self.history.add_message(user_message)
-
-            if self.out is not None:
-                with open(self.out, "a+") as f:
-                    f.write("User:\n" + user_input)
-                    f.write("\n\n")
+                if self.out is not None:
+                    with open(self.out, "a+") as f:
+                        f.write("User:\n" + user_input)
+                        f.write("\n\n")
 
             completion = pretty.typing_animation(
                 ChatCompletion.create,
@@ -99,17 +99,17 @@ class Chat:
                 frequency_penalty=self.frequency_penalty,
             )
 
-            reply = completion.choices[0].message["content"]
+            assistant_reply = completion.choices[0].message["content"]
             self.history.add_assistant(
-                content=reply,
+                content=assistant_reply,
                 n_tokens=completion["usage"]["completion_tokens"],
             )
-            rich.print(Markdown(reply))
+            rich.print(Markdown(assistant_reply))
             rich.print()
 
-            if self.out is not None:
+            if self.out:
                 with open(self.out, "a+") as f:
-                    f.write("Assistant:\n" + reply)
+                    f.write("Assistant:\n" + assistant_reply)
                     f.write("\n\n")
 
     def prompt(self, user_input: str) -> List[str]:
@@ -292,6 +292,9 @@ class History:
                 content = ""
             else:
                 content += line
+        content = content.strip()
+        self.add_message(Message(role=role, content=content, model=self.model))
+        return self
 
 
 if __name__ == "__main__":

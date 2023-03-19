@@ -8,7 +8,7 @@ import typer
 from rich.markdown import Markdown
 
 from chatgpt_cli import pretty
-from chatgpt_cli.chat import Chat
+from chatgpt_cli.chat import Chat, History, Role
 from chatgpt_cli.config import Config
 from chatgpt_cli.instruct import Instruct
 
@@ -189,12 +189,22 @@ def chat(
         if not cont:
             raise typer.Abort()
 
+    if history:
+        history = History(model=model).load(history)
+        # Check that there are no contradictions between the system in the
+        # history and the history supplied via command line
+        if history.system.content is not None and system is not None:
+            msg = (
+                "ignoring system from --system parameter: system"
+                "message present in history."
+            )
+            if not nowarning:
+                pretty.warning(msg)
+
     temperature, top_p, stop = validate_cli_parameters(
         temperature, top_p, stop, nowarning
     )
-
     config = Config(config)
-
     chat = Chat(
         config=config,
         out=out,
@@ -206,6 +216,7 @@ def chat(
         top_p=top_p,
         presence_penalty=presence_penalty,
         frequency_penalty=frequency_penalty,
+        history=history,
     )
     chat.start()
 
