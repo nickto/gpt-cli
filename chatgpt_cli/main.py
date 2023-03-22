@@ -257,16 +257,6 @@ def prompt(
         else:
             user_input = AbstractCompletion.ask_for_input()
 
-    if not sys.stdout.isatty():
-        # Write to piped stdout
-        print("User:")
-        print(user_input)
-
-    if out:
-        with open(out, "w+") as f:
-            f.write("User:\n")
-            f.write(user_input + "\n\n")
-
     temperature, top_p, stop = validate_cli_parameters(
         temperature, top_p, stop, nowarning
     )
@@ -297,6 +287,17 @@ def prompt(
         single_prompt = Instruct(**kwargs)
         completions = single_prompt.prompt(user_input)
 
+    # Print User: header only if many completions
+    if not sys.stdout.isatty() and len(completions) > 1:
+        # Write to piped stdout
+        print("User:")
+        print(user_input)
+
+    if out:
+        with open(out, "w+") as f:
+            f.write("User:\n")
+            f.write(user_input + "\n\n")
+
     for i, completion in enumerate(completions):
         if len(completions) == 1:
             header = "Assistant:"
@@ -311,7 +312,9 @@ def prompt(
             rich.print(Markdown(completion))
         else:
             # Stdout output, skip formatting
-            print(header)
+            if len(completions) > 1:
+                # Print header only if many completions
+                print(header)
             print(completion)
 
         if out:
