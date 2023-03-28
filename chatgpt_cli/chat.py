@@ -290,10 +290,11 @@ class History:
                 # Start accumulating new content
                 role = Role.assistant
                 content = ""
-            elif line is None:
-                pass
             else:
-                content += line
+                if content:
+                    content += line
+                else:
+                    content = "line"
         content = content.strip()
         self.add_message(content=content, role=role)
         return self
