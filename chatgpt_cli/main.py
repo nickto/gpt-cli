@@ -195,7 +195,7 @@ def chat(
         # history and the history supplied via command line
         if history.is_system_set() and system is not None:
             msg = (
-                "ignoring system from --system parameter: system"
+                "ignoring system from --system parameter: system "
                 "message present in history."
             )
             if not nowarning:
