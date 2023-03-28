@@ -290,6 +290,8 @@ class History:
                 # Start accumulating new content
                 role = Role.assistant
                 content = ""
+            elif line is None:
+                pass
             else:
                 content += line
         content = content.strip()
