@@ -265,6 +265,7 @@ class History:
     def load(self, file: IO) -> History:
         self.messages: List[Message] = []
         content: str | None = None
+        role: Role | None = None
         for line in file.readlines():
             if self._is_system_line(line):
                 # If accumulated content, save it to message
@@ -290,11 +291,12 @@ class History:
                 # Start accumulating new content
                 role = Role.assistant
                 content = ""
+            elif content is not None:
+                content += line
             else:
-                if content:
-                    content += line
-                else:
-                    content = "line"
+                # `content` is None, which means that the history file was improperly
+                # formatted
+                raise ValueError("History file is improperly formatted.")
         content = content.strip()
         self.add_message(content=content, role=role)
         return self

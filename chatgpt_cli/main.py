@@ -190,7 +190,11 @@ def chat(
             raise typer.Abort()
 
     if history:
-        history = History(model=model).load(history)
+        try:
+            history = History(model=model).load(history)
+        except ValueError as e:
+            pretty.error(e)
+            raise typer.Abort()
         # Check that there are no contradictions between the system in the
         # history and the history supplied via command line
         if history.is_system_set() and system is not None:
