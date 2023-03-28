@@ -194,6 +194,7 @@ def chat(
         # Check that there are no contradictions between the system in the
         # history and the history supplied via command line
         if history.is_system_set() and system is not None:
+            print(history.system)
             msg = (
                 "ignoring system from --system parameter: system "
                 "message present in history."
@@ -321,3 +322,7 @@ def prompt(
             with open(out, "a+") as f:
                 f.write(header + "\n")
                 f.write(completion + "\n\n")
+
+
+if __name__ == "__main__":
+    app()

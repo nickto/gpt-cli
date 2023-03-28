@@ -64,9 +64,24 @@ def test_limit_tokens():
 
 def test_load():
     history = History(model="gpt-3.5-turbo")
-    history.load(open("tests/assets/history.txt", "r"))
+    history.load(open("tests/assets/history_w_system.txt", "r"))
+
+    assert isinstance(history, History)
+    assert len(history.messages) > 0
+
+
+def test_is_system_set():
+    history = History(model="gpt-3.5-turbo")
+    history.load(open("tests/assets/history_w_system.txt", "r"))
+
     assert history.is_system_set()
     assert history.system.content is not None
 
     assert history.system.role == Role.system
     assert history.messages[0].role != Role.system
+
+    history = History(model="gpt-3.5-turbo")
+    history.load(open("tests/assets/history_wo_system.txt", "r"))
+
+    assert not history.is_system_set()
+    assert history.system.content is None
