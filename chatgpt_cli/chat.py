@@ -117,12 +117,19 @@ class Chat(AbstractChat):
     def prompt(self, user_input: str) -> List[str]:
         self.history.add_user(user_input)
 
-        response = pretty.typing_animation(
-            ChatCompletion.create,
-            model=self.model,
-            messages=self.history.get_messages(),
-            **self.completion_params,
-        )
+        success = False
+        while not success:
+            try:
+                response = pretty.typing_animation(
+                    ChatCompletion.create,
+                    model=self.model,
+                    messages=self.history.get_messages(),
+                    **self.completion_params,
+                )
+                success = True
+            except RateLimitError:
+                msg = f"RateLimitError: retrying in {self.RETRY_SLEEP:d} seconds."
+                pretty.waiting_animation(self.RETRY_SLEEP, msg)
 
         completions = [c.message["content"] for c in response.choices]
         return completions
