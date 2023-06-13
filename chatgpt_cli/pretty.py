@@ -1,11 +1,9 @@
-from rich import print
-import typer
-import openai
-import typer
-from openai.api_resources.abstract.engine_api_resource import EngineAPIResource
-from rich import print
-from rich.progress import Progress, SpinnerColumn, TextColumn
+import time
 from typing import Callable
+
+from rich import print
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+from rich.table import Column
 
 
 def error(text: str) -> None:
@@ -25,6 +23,19 @@ def typing_animation(func: Callable, *args, **kwargs):
         progress.add_task(description="Processing request", total=None)
         response = func(*args, **kwargs)
     return response
+
+
+def waiting_animation(seconds: int = 1, msg: str = ""):
+    progress = Progress(
+        SpinnerColumn(),
+        TextColumn(msg),
+        BarColumn(bar_width=None, table_column=Column(ratio=2)),
+        expand=False,
+        transient=True,
+    )
+    with progress:
+        for _ in progress.track(range(seconds * 10)):
+            time.sleep(0.1)
 
 
 if __name__ == "__main__":
