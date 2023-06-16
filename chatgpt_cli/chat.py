@@ -7,7 +7,7 @@ import openai
 import rich
 import tiktoken
 from openai import ChatCompletion
-from openai.error import RateLimitError
+from openai.error import APIError, RateLimitError
 from rich.markdown import Markdown
 
 from chatgpt_cli import pretty
@@ -100,6 +100,9 @@ class Chat(AbstractChat):
                 except RateLimitError:
                     msg = f"RateLimitError: retrying in {self.RETRY_SLEEP:d} seconds."
                     pretty.waiting_animation(self.RETRY_SLEEP, msg)
+                except APIError:
+                    msg = f"APIError: retrying in {self.RETRY_SLEEP:d} seconds."
+                    pretty.waiting_animation(self.RETRY_SLEEP, msg)
 
             assistant_reply = completion.choices[0].message["content"]
             self.history.add_assistant(
@@ -129,6 +132,9 @@ class Chat(AbstractChat):
                 success = True
             except RateLimitError:
                 msg = f"RateLimitError: retrying in {self.RETRY_SLEEP:d} seconds."
+                pretty.waiting_animation(self.RETRY_SLEEP, msg)
+            except APIError:
+                msg = f"APIError: retrying in {self.RETRY_SLEEP:d} seconds."
                 pretty.waiting_animation(self.RETRY_SLEEP, msg)
 
         completions = [c.message["content"] for c in response.choices]
