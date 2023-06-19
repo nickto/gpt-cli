@@ -1,6 +1,12 @@
 [tool.poetry]
 name = "chatgpt-cli"
+<<<<<<< HEAD
 version = "0.1.7"
+||||||| 81f56ea
+version = "0.1.5"
+=======
+version = "0.1.6"
+>>>>>>> origin/main
 description = "CLI for OpenAI ChatGPT and instruct models."
 authors = ["Nick To <nick@nickto.net>"]
 license = "MIT"

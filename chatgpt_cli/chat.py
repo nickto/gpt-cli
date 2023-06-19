@@ -7,7 +7,13 @@ import openai
 import rich
 import tiktoken
 from openai import ChatCompletion
+<<<<<<< HEAD
 from openai.error import APIError, RateLimitError, ServiceUnavailableError
+||||||| 81f56ea
+from openai.error import RateLimitError
+=======
+from openai.error import APIError, RateLimitError
+>>>>>>> origin/main
 from rich.markdown import Markdown
 
 from chatgpt_cli import pretty
