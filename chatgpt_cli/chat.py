@@ -89,6 +89,13 @@ class Chat(AbstractChat):
                 f.write("System:\n" + self.system)
                 f.write("\n\n")
 
+                for message in self.history.messages:
+                    if message.role == Role.user:
+                        f.write("User:\n" + message.content)
+                    elif message.role == Role.assistant:
+                        f.write("Assistant:\n" + message.content)
+                    f.write("\n\n")
+
         while True:
             if self._need_user_input():
                 user_input = self.ask_for_input()
