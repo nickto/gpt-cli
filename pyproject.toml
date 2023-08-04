@@ -1,11 +1,11 @@
 [tool.poetry]
 name = "chatgpt-cli"
-version = "0.1.8"
+version = "0.1.9"
 description = "CLI for OpenAI ChatGPT and instruct models."
 authors = ["Nick To <nick@nickto.net>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "chatgpt_cli"}]
+packages = [{ include = "chatgpt_cli" }]
 
 [tool.poetry.scripts]
 chatgpt-cli = "chatgpt_cli.main:app"
@@ -13,7 +13,7 @@ chatgpt-cli = "chatgpt_cli.main:app"
 [tool.poetry.dependencies]
 python = "^3.10"
 openai = "^0.27.2"
-typer = {version = "^0.7.0", extras = ["all"]}
+typer = { version = "^0.7.0", extras = ["all"] }
 tiktoken = "^0.3.2"
 
 [tool.poetry.group.dev.dependencies]

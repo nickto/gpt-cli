@@ -59,6 +59,18 @@ class Chat(AbstractChat):
             frequency_penalty=frequency_penalty,
         )
 
+    def _get_max_model_tokens(self) -> int:
+        if "16k" in self.model:
+            max_tokens = 2**14 // 2  # half of 16K
+        elif "32k" in self.model:
+            max_tokens = 2**15 // 2  # half of 32K
+        elif "gpt-4" in self.model:
+            max_tokens = 2**13 // 2  # half of 8K, which is gpt-4 default
+        else:
+            # This covers, among others, "gpt-3.5"
+            max_tokens = 2**12 // 2  # half of 4K, which is gpt-3.5 default
+        return max_tokens
+
     def _need_user_input(self) -> bool:
         if len(self.history.messages) == 0:
             # First message should be user input
@@ -93,7 +105,9 @@ class Chat(AbstractChat):
                     completion = pretty.typing_animation(
                         ChatCompletion.create,
                         model=self.model,
-                        messages=self.history.get_messages(),
+                        messages=self.history.get_messages(
+                            max_tokens=self._get_max_model_tokens()
+                        ),
                         **self.completion_params,
                     )
                     success = True
@@ -129,7 +143,9 @@ class Chat(AbstractChat):
                 response = pretty.typing_animation(
                     ChatCompletion.create,
                     model=self.model,
-                    messages=self.history.get_messages(),
+                    messages=self.history.get_messages(
+                        max_tokens=self._get_max_model_tokens()
+                    ),
                     **self.completion_params,
                 )
                 success = True
