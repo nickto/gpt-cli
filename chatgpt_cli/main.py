@@ -8,10 +8,7 @@ from rich.markdown import Markdown
 
 from chatgpt_cli import pretty
 from chatgpt_cli.chat import Chat, History
-from chatgpt_cli.constants import CONFIG_DIR
-from chatgpt_cli.instruct import Instruct
 from chatgpt_cli.key import OpenaiApiKey
-from chatgpt_cli.abstract import AbstractCompletion
 
 app = typer.Typer(rich_markup_mode="markdown")
 
@@ -27,13 +24,6 @@ SYSTEM_OPTION = typer.Option(
     help="System message for ChatGPT.",
     rich_help_panel="Model parameters",
     show_default=False,
-)
-N_OPTION = typer.Option(
-    1,
-    help="Number of answers for each prompt.",
-    min=1,
-    max=10,
-    rich_help_panel="Model parameters",
 )
 TEMPERATURE_OPTION = typer.Option(
     1,
@@ -94,11 +84,6 @@ NOCONFIRM_OPTION = typer.Option(
     False,
     "--noconfirm",
     help="Answer yes to all confirmation messages.",
-)
-PROMPT_ARGUMENT = typer.Argument(
-    "",
-    help="Prompt for a model.",
-    metavar="TEXT",
 )
 HISTORY_OPTION = typer.Option(
     None,
@@ -223,109 +208,6 @@ def chat(
         history=history,
     )
     chat.start()
-
-
-@app.command()
-def prompt(
-    openai_api_key: str = API_KEY_OPTION,
-    out: str = OUTPUT_OPTION,
-    model: str = MODEL_OPTION,
-    system: str = SYSTEM_OPTION,
-    stop: Optional[List[str]] = STOP_OPTION,
-    max_tokens: int = MAX_TOKENS_OPTION,
-    temperature: float = TEMPERATURE_OPTION,
-    top_p: float = TOP_P_OPTION,
-    n: int = N_OPTION,
-    presence_penalty: float = PRESENCE_PENALTY_OPTION,
-    frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
-    noconfirm: bool = NOCONFIRM_OPTION,
-    nowarning: bool = NOWARNING_OPTION,
-    prompt: Optional[str] = PROMPT_ARGUMENT,
-):
-    """
-    Ask a single question.
-
-    Checks for prompt in the command line argument, then in standard input.
-    If neither is present, asks interactively.
-
-    For multiline inputs use backslashes.
-    """
-    openai_api_key = OpenaiApiKey(openai_api_key)
-
-    if prompt:
-        user_input = prompt
-        del prompt
-    else:
-        if not sys.stdin.isatty():
-            # Read from piped stdin
-            user_input = "\n".join(sys.stdin.readlines())
-        else:
-            user_input = AbstractCompletion.ask_for_input()
-
-    temperature, top_p, stop = validate_cli_parameters(
-        temperature, top_p, stop, nowarning
-    )
-    kwargs = dict(
-        api_key=openai_api_key,
-        model=model,
-        stop=stop,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        n=n,
-        presence_penalty=presence_penalty,
-        frequency_penalty=frequency_penalty,
-    )
-    if "gpt" in model:
-        # Use /v1/chat/completions API with GPT-3.5 or GPT-4 models.
-        kwargs["system"] = system
-        single_prompt = Chat(**kwargs)
-        completions = single_prompt.prompt(user_input)
-    else:
-        if max_tokens > 128 and not noconfirm:
-            cont = typer.confirm(
-                "InstructGPT often generates repetitive answers "
-                "exhausting max_tokens. Are you sure want to continue?"
-            )
-            if not cont:
-                raise typer.Abort()
-        single_prompt = Instruct(**kwargs)
-        completions = single_prompt.prompt(user_input)
-
-    # Print User: header only if many completions
-    if not sys.stdout.isatty() and len(completions) > 1:
-        # Write to piped stdout
-        print("User:")
-        print(user_input)
-
-    if out:
-        with open(out, "w+") as f:
-            f.write("User:\n")
-            f.write(user_input + "\n\n")
-
-    for i, completion in enumerate(completions):
-        if len(completions) == 1:
-            header = "Assistant:"
-            header_md = ""
-        else:
-            header = f"Assistant, completion {i:d}:"
-            header_md = f"# Completion {i:d}\n"
-
-        if sys.stdout.isatty():
-            # Terminal output, so format
-            rich.print(Markdown(header_md), end="")
-            rich.print(Markdown(completion))
-        else:
-            # Stdout output, skip formatting
-            if len(completions) > 1:
-                # Print header only if many completions
-                print(header)
-            print(completion)
-
-        if out:
-            with open(out, "a+") as f:
-                f.write(header + "\n")
-                f.write(completion + "\n\n")
 
 
 if __name__ == "__main__":

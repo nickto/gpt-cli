@@ -1,19 +1,67 @@
 from __future__ import annotations
 
-from enum import Enum
-from typing import IO, Dict, List
+from abc import ABC, abstractmethod
+from typing import Dict, List
 
 import openai
 import rich
-import tiktoken
+import typer
 from openai import ChatCompletion
 from openai.error import APIError, RateLimitError, ServiceUnavailableError
 from rich.markdown import Markdown
+from rich.prompt import Prompt
 
 from chatgpt_cli import pretty
 
-from .abstract import AbstractChat
+from .history import History
 from .key import OpenaiApiKey
+from .role import Role
+
+
+class AbstractChat(ABC):
+    completion_params: Dict[str, str | float | int | List[str]]
+
+    def __init__(self, **completion_params):
+        # Check and fix some model params if needed
+        if "stop" in completion_params:
+            stop = completion_params["stop"]
+            stop = stop if stop else None  # "" or [] becomes None
+            completion_params["stop"] = stop
+        if "max_tokens" in completion_params:
+            assert completion_params["max_tokens"] > 0
+        if "temperature" in completion_params:
+            assert 0 <= completion_params["temperature"] <= 2
+        if "top_p" in completion_params:
+            assert 0 <= completion_params["top_p"] <= 1
+        if "n" in completion_params:
+            assert completion_params["n"] > 0
+        if "presence_penalty" in completion_params:
+            assert -2 <= completion_params["presence_penalty"] <= 2
+        if "frequency_penalty" in completion_params:
+            assert -2 <= completion_params["frequency_penalty"] <= 2
+        self.completion_params = completion_params
+
+    @staticmethod
+    def ask_for_input() -> str:
+        prompt = Prompt
+        prompt.prompt_suffix = "> "
+        user_input = ""
+        while True:
+            user_input += prompt.ask()
+            if user_input.strip()[-1] != "\\":
+                break
+            else:
+                # Change \ for \n
+                user_input = user_input[:-1]
+                user_input += "\n"
+        if user_input in ("exit", "quit", ":q"):
+            raise typer.Exit()
+
+        return user_input
+
+    @abstractmethod
+    def start(self):
+        raise NotImplementedError
 
 
 class Chat(AbstractChat):
@@ -141,215 +189,3 @@ class Chat(AbstractChat):
                 with open(self.out, "a+") as f:
                     f.write("Assistant:\n" + assistant_reply)
                     f.write("\n\n")
-
-    def prompt(self, user_input: str) -> List[str]:
-        self.history.add_user(user_input)
-
-        success = False
-        while not success:
-            try:
-                response = pretty.typing_animation(
-                    ChatCompletion.create,
-                    model=self.model,
-                    messages=self.history.get_messages(
-                        max_tokens=self._get_max_model_tokens()
-                    ),
-                    **self.completion_params,
-                )
-                success = True
-            except RateLimitError:
-                msg = f"RateLimitError: retrying in {self.RETRY_SLEEP:d} seconds."
-                pretty.waiting_animation(self.RETRY_SLEEP, msg)
-            except APIError:
-                msg = f"APIError: retrying in {self.RETRY_SLEEP:d} seconds."
-                pretty.waiting_animation(self.RETRY_SLEEP, msg)
-            except ServiceUnavailableError:
-                msg = f"ServiceUnavailableError: retrying in {self.RETRY_SLEEP:d} seconds."
-                pretty.waiting_animation(self.RETRY_SLEEP, msg)
-
-        completions = [c.message["content"] for c in response.choices]
-        return completions
-
-
-class Role(str, Enum):
-    system = "system"
-    user = "user"
-    assistant = "assistant"
-
-
-class Message:
-    def __init__(
-        self,
-        role: Role,
-        content: str | None,
-        n_tokens: int | None = None,
-        model: str | None = None,
-    ):
-        self.role = role
-        self.content = content
-
-        # Content can be None only if role is "system". This is allowed to
-        # distinguish between no system message provided and empty string
-        # message provided for system, because model behaves differently in
-        # these two cases.
-        if content is None:
-            if role == Role.system:
-                n_tokens = 0
-            else:
-                raise ValueError('If role is not "system", content cannot be None')
-
-        if n_tokens is None:
-            if model is None:
-                raise ValueError("If n_tokens not present, model should be present.")
-            self.n_tokens = self.count_tokens(content, model)
-        else:
-            self.n_tokens = n_tokens
-
-    @staticmethod
-    def count_tokens(text: str, model: str) -> int:
-        encoding = tiktoken.encoding_for_model(model)
-        num_tokens = len(encoding.encode(text))
-        return num_tokens
-
-    def __str__(self):
-        return f"{self.role.value.title()}: {self.content}"
-
-
-class History:
-    messages: List[Message]
-    system: Message
-
-    def __init__(self, model: str):
-        self.model = model
-        self.system = Message(role=Role.system, content=None, model=self.model)
-        self.messages = []
-
-    def _add_message(self, message: Message) -> History:
-        self.messages.append(message)
-        return self
-
-    def add_message(self, content: str, role: Role, n_tokens: int | None = None):
-        match role:
-            case Role.system:
-                self.add_system(content=content, n_tokens=n_tokens)
-            case Role.user:
-                self.add_user(content=content, n_tokens=n_tokens)
-            case Role.assistant:
-                self.add_assistant(content=content, n_tokens=n_tokens)
-            case _:
-                raise ValueError("Unexpected value of role.")
-
-    def add_user(self, content: str, n_tokens: int | None = None) -> History:
-        message = Message(
-            role=Role.user, content=content, model=self.model, n_tokens=n_tokens
-        )
-        self._add_message(message)
-        return self
-
-    def add_assistant(self, content: str, n_tokens: int | None = None) -> History:
-        message = Message(
-            role=Role.assistant, content=content, model=self.model, n_tokens=n_tokens
-        )
-        self._add_message(message)
-        return self
-
-    def add_system(self, content: str, n_tokens: int | None = None) -> History:
-        message = Message(
-            role=Role.system, content=content, model=self.model, n_tokens=n_tokens
-        )
-        self.system = message
-        return self
-
-    def is_system_set(self) -> bool:
-        return self.system.content is not None
-
-    def get_history(
-        self,
-        max_tokens: int = 2048,
-        max_messages: int = 32 * 1024,  # just a very large number
-    ) -> List[Message]:
-        history_tokens = self.system.n_tokens
-        history = []
-        for message in reversed(self.messages):
-            # Will token count be ok?
-            ok_to_add = (history_tokens + message.n_tokens) <= max_tokens
-            # Will message count be ok?
-            ok_to_add = ok_to_add and (len(history) < max_messages)
-
-            if ok_to_add:
-                history.insert(0, message)
-                history_tokens += message.n_tokens
-            else:
-                break
-
-        if self.is_system_set():
-            history.insert(0, self.system)
-
-        return history
-
-    @staticmethod
-    def history2dict(history: List[Message]) -> Dict[str, str]:
-        messages = []
-        for message in history:
-            messages.append({"role": message.role.value, "content": message.content})
-
-        return messages
-
-    def get_messages(
-        self,
-        max_tokens: int = 2048,
-        max_messages: int = 32 * 1024,  # just a very large number
-    ) -> Dict[str, str]:
-        history = self.get_history(max_tokens=max_tokens, max_messages=max_messages)
-        return self.history2dict(history)
-
-    @staticmethod
-    def _is_system_line(text: str) -> bool:
-        return text == "System:\n"
-
-    @staticmethod
-    def _is_user_line(text: str) -> bool:
-        return text == "User:\n"
-
-    @staticmethod
-    def _is_assistant_line(text: str) -> bool:
-        return text == "Assistant:\n"
-
-    def load(self, file: IO) -> History:
-        self.messages: List[Message] = []
-        content: str | None = None
-        role: Role | None = None
-        for line in file.readlines():
-            if self._is_system_line(line):
-                # If accumulated content, save it to message
-                if content:
-                    content = content.strip()
-                    self.add_message(content=content, role=role)
-                # Start accumulating new content
-                role = Role.system
-                content = ""
-            elif self._is_user_line(line):
-                # If accumulated content, save it to message
-                if content:
-                    content = content.strip()
-                    self.add_message(content=content, role=role)
-                # Start accumulating new content
-                role = Role.user
-                content = ""
-            elif self._is_assistant_line(line):
-                # If accumulated content, save it to message
-                if content:
-                    content = content.strip()
-                    self.add_message(content=content, role=role)
-                # Start accumulating new content
-                role = Role.assistant
-                content = ""
-            elif content is not None:
-                content += line
-            else:
-                # `content` is None, which means that the history file was improperly
-                # formatted
-                raise ValueError("History file is improperly formatted.")
-        content = content.strip()
-        self.add_message(content=content, role=role)
-        return self
