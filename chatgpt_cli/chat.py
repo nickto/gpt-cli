@@ -133,6 +133,7 @@ class Chat(AbstractChat):
                 content=assistant_reply,
                 n_tokens=completion["usage"]["completion_tokens"],
             )
+            rich.print()
             rich.print(Markdown(assistant_reply))
             rich.print()
 
