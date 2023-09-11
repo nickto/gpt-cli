@@ -12,8 +12,8 @@
 - [X] Rename history into context
 - [X] Catch `AuthenticationError` error.
 - [X] Add some way to properly uninstall
+- [X] Add tests.
 - [ ] Show what the model is typing instead of just "Typing" spinner
-- [ ] Add tests.
 
 ## Install
 
