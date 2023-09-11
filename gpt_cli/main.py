@@ -1,26 +1,47 @@
 import os
-import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Annotated
+from pydantic import ValidationError
 
 import rich
 import typer
 from rich.markdown import Markdown
 
-from chatgpt_cli import pretty
-from chatgpt_cli.chat import Chat, History
-from chatgpt_cli.key import OpenaiApiKey
+from gpt_cli import pretty
+from .chat import Chat, Context
+from .key import OpenaiApiKey
+from .model import OpenAiModel
 
 app = typer.Typer(rich_markup_mode="markdown")
 
 
+INPUT_OPTION = typer.Option(
+    None,
+    help="Previous outputs to start the conversation from.",
+    show_default=False,
+    rich_help_panel="Conversation context",
+)
+OUTPUT_OPTION = typer.Option(
+    None,
+    help="Output the whole conversation to a file.",
+    metavar="PATH",
+    show_default=False,
+    rich_help_panel="Conversation context",
+)
+MAX_CONTEXT_TOKENS_OPTION = typer.Option(
+    2048,
+    help="Max number of tokens in the context.",
+    rich_help_panel="Context",
+    show_default=False,
+)
 API_KEY_OPTION = typer.Option(
     None,
     help="OpenAI API key (run `chatgpt-cli init` to avoid passing it each time).",
     show_default=False,
     envvar="OPENAI_API_KEY",
+    rich_help_panel="Authentication",
 )
 SYSTEM_OPTION = typer.Option(
-    "You are a helpful assistant. Answer as concisely as possible.",
+    None,
     help="System message for ChatGPT.",
     rich_help_panel="Model parameters",
     show_default=False,
@@ -45,10 +66,11 @@ MODEL_OPTION = typer.Option(
     rich_help_panel="Model parameters",
     show_default=False,
 )
-MAX_TOKENS_OPTION = typer.Option(
+MAX_COMPLETION_TOKENS_OPTION = typer.Option(
     2048,
-    help="Max number of tokens in completion.",
+    help="Max number of tokens in the completion.",
     rich_help_panel="Model parameters",
+    show_default=False,
 )
 PRESENCE_PENALTY_OPTION = typer.Option(
     0,
@@ -68,11 +90,6 @@ STOP_OPTION = typer.Option(
     None,
     help="Sequences where the API will stop generating further tokens.",
     rich_help_panel="Model parameters",
-)
-OUTPUT_OPTION = typer.Option(
-    None,
-    help="Output the whole conversation to a file.",
-    metavar="PATH",
     show_default=False,
 )
 NOWARNING_OPTION = typer.Option(
@@ -85,14 +102,9 @@ NOCONFIRM_OPTION = typer.Option(
     "--noconfirm",
     help="Answer yes to all confirmation messages.",
 )
-HISTORY_OPTION = typer.Option(
-    None,
-    help="Path to previous outputs, to use as chat history.",
-    show_default=False,
-)
 
 
-def validate_cli_parameters(
+def validate_model_parameters(
     temperature: float,
     top_p: float,
     stop: List[str] | None,
@@ -118,13 +130,16 @@ def init(noconfirm: bool = NOCONFIRM_OPTION):
 
     # Get config path and check if it exists
     api_key_path = OpenaiApiKey.path
-    cont = typer.confirm(f"Will save OpenAI API key to {api_key_path}, okay?")
-    if not cont:
-        raise typer.Abort()
 
+    if not noconfirm:
+        cont = typer.confirm(f"OpenAI API key will be saved to {api_key_path}, okay?")
+        if not cont:
+            raise typer.Abort()
+
+    # Check if we need to overwrite it
     if os.path.exists(api_key_path) and not noconfirm:
         cont = typer.confirm(
-            f"{api_key_path} file already exists. Do you want to overwrite it?"
+            f"File {api_key_path} already exists. Do you want to overwrite it?"
         )
         if not cont:
             raise typer.Abort()
@@ -132,24 +147,45 @@ def init(noconfirm: bool = NOCONFIRM_OPTION):
     # Save
     os.makedirs(os.path.split(api_key_path)[0], exist_ok=True)
     OpenaiApiKey(openai_api_key=openai_api_key).save()
-    rich.print(f"OpenAI API key was saved to {api_key_path} successfully.")
+
+
+@app.command()
+def deinit(noconfirm: bool = NOCONFIRM_OPTION):
+    "Deinitialize the app: remove the OpenAI API key."
+    # Get config path and check if it exists
+    api_key_path = OpenaiApiKey.path
+
+    # Check if it exists
+    if not os.path.exists(api_key_path):
+        pretty.warning(f"File {api_key_path} does not exist: nothing to remove.")
+
+    # Ask for confirmations
+    if not noconfirm:
+        cont = typer.confirm(
+            f"OpenAI API key will be removed from {api_key_path}, okay?"
+        )
+        if not cont:
+            raise typer.Abort()
+
+    # Remove
+    os.remove(api_key_path)
 
 
 @app.command()
 def chat(
-    openai_api_key: str = API_KEY_OPTION,
-    out: str = OUTPUT_OPTION,
+    input: typer.FileText = INPUT_OPTION,
+    output: str = OUTPUT_OPTION,
+    max_context_tokens: Optional[int] = MAX_CONTEXT_TOKENS_OPTION,
+    system: Optional[str] = SYSTEM_OPTION,
     model: str = MODEL_OPTION,
-    system: str = SYSTEM_OPTION,
     stop: Optional[List[str]] = STOP_OPTION,
-    max_tokens: int = MAX_TOKENS_OPTION,
+    max_completion_tokens: Optional[int] = MAX_COMPLETION_TOKENS_OPTION,
     temperature: float = TEMPERATURE_OPTION,
     top_p: float = TOP_P_OPTION,
     presence_penalty: float = PRESENCE_PENALTY_OPTION,
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
-    noconfirm: bool = NOCONFIRM_OPTION,
     nowarning: bool = NOWARNING_OPTION,
-    history: typer.FileText = HISTORY_OPTION,
+    openai_api_key: str = API_KEY_OPTION,
 ):
     """Start an interactive chat.
 
@@ -157,55 +193,53 @@ def chat(
     """
     openai_api_key = OpenaiApiKey(openai_api_key)
 
-    if "gpt" not in model and not noconfirm:
-        msg = Markdown(
-            " ".join(
-                [
-                    "The provided model,",
-                    f'"{model}", will probably not work with /v1/chat/completions',
-                    "endpoint. Check",
-                    "[here](https://platform.openai.com/docs/models/model-endpoint-compatibility)",
-                    "the model endpoint compatibility list.",
-                ]
-            )
+    try:
+        model = OpenAiModel(name=model)
+    except ValidationError:
+        pretty.error(
+            f'Model "{model}" is not supported. '
+            "Check the list of supported models here: "
+            "https://platform.openai.com/docs/models/model-endpoint-compatibility."
         )
-        rich.print(msg)
-        cont = typer.confirm("Are you sure you want to continue?")
-        if not cont:
-            raise typer.Abort()
+        raise typer.Abort()
 
-    if history:
+    # Load context if provided
+    if input:
         try:
-            history = History(model=model).load(history)
+            context = Context(model=model).load(input)
         except ValueError as e:
             pretty.error(e)
             raise typer.Abort()
+
         # Check that there are no contradictions between the system in the
         # history and the history supplied via command line
-        if history.is_system_set() and system is not None:
-            print(history.system)
-            msg = (
-                "ignoring system from --system parameter: system "
-                "message present in history."
-            )
+        if context.is_system_set() and system is not None:
+            msg = "Ignoring system from history because system was provided via command line."
             if not nowarning:
                 pretty.warning(msg)
 
-    temperature, top_p, stop = validate_cli_parameters(
+            context.set_system(system)
+            rich.print(context.system)
+
+    # Validate model parameters, so that they do not contradict each other
+    temperature, top_p, stop = validate_model_parameters(
         temperature, top_p, stop, nowarning
     )
+
+    # Create the chat
     chat = Chat(
         api_key=openai_api_key,
-        out=out,
+        out=output,
         system=system,
         model=model,
         stop=stop,
-        max_tokens=max_tokens,
+        max_completion_tokens=max_completion_tokens,
+        max_context_tokens=max_context_tokens,
         temperature=temperature,
         top_p=top_p,
         presence_penalty=presence_penalty,
         frequency_penalty=frequency_penalty,
-        history=history,
+        context=context,
     )
     chat.start()
 

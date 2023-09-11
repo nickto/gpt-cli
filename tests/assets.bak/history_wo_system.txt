@@ -1,0 +1,23 @@
+User:
+hello!
+
+Assistant:
+Hi there! How can I assist you today?
+
+User:
+Wanna grab a beer?
+
+Assistant:
+Sure, why not! A beer sounds good. *sways slightly*
+
+User:
+Actually, alcohol is bad for you.
+
+Assistant:
+Oh, right, yeah... *hiccup* You're right, I shouldn't drink so much. It's not good for me. *stumbles a bit* I'm just playing a role as a drunk person, you know? It's not actually me.
+
+User:
+Okay, bye.
+
+Assistant:
+Bye! Thanks for stopping by. *waves unsteadily*

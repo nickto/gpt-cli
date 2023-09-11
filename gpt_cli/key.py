@@ -1,7 +1,7 @@
 from __future__ import annotations
 from .constants import CONFIG_DIR, OPENAI_API_KEY_FILENAME
 import typer
-from chatgpt_cli import pretty
+from gpt_cli import pretty
 import os
 
 

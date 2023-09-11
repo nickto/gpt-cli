@@ -1,0 +1,145 @@
+from __future__ import annotations
+
+import textwrap
+from typing import Dict, List
+
+import yaml
+
+from .message import Message
+from .model import OpenAiModel
+from .role import Role
+
+
+class Context:
+    messages: List[Message]
+    system: Message
+
+    def __init__(self, model: OpenAiModel):
+        self.model = model
+        self.system = Message(role=Role.system, content=None, model=self.model)
+        self.messages = []
+
+    def add_message(self, message: Message) -> Context:
+        self.messages.append(message)
+        return self
+
+    def save(self, filepath: str):
+        messages = [
+            message.model_dump(mode="json", exclude=["model", "n_tokens"])
+            for message in self.messages
+        ]
+
+        # Instead of using pyyaml or ruamel.yaml, we'll just write the YAML file:
+        # couldn't implement the formatting I liked with these libs
+        with open(filepath, "w") as file:
+            for message in messages:
+                file.write(f"- role: {message['role']}\n")
+                file.write(f"  content: >-\n")
+                wrapped = textwrap.wrap(
+                    message["content"],
+                    width=40,
+                    replace_whitespace=False,
+                )
+                indent = 4 * " "
+                for _ in wrapped:
+                    for line in _.split("\n"):
+                        file.write(f"{indent}{line}\n")
+
+    def load(self, filepath: str):
+        messages = yaml.safe_load(filepath)
+        for m in messages:
+            message = Message(
+                role=Role(m["role"]), content=m["content"], model=self.model
+            )
+            self.add_message(message)
+        return self
+
+    def is_system_set(self) -> bool:
+        return self.system.content is not None
+
+    def set_system(self, text: str) -> Context:
+        self.system.content = text
+        return self
+
+    def get_context(
+        self,
+        max_tokens: int = 2048,
+        max_messages: int = 32 * 1024,  # just a very large number
+    ) -> List[Message]:
+        context_tokens = self.system.n_tokens
+        context = []
+        for message in reversed(self.messages):
+            # Will token count be ok?
+            ok_to_add = (context_tokens + message.n_tokens) <= max_tokens
+            # Will message count be ok?
+            ok_to_add = ok_to_add and (len(context) < max_messages)
+
+            if ok_to_add:
+                context.insert(0, message)
+                context_tokens += message.n_tokens
+            else:
+                break
+
+        if self.is_system_set():
+            context.insert(0, self.system)
+
+        return context
+
+    @staticmethod
+    def context2dict(history: List[Message]) -> Dict[str, str]:
+        messages = []
+        for message in history:
+            messages.append({"role": message.role.value, "content": message.content})
+
+        return messages
+
+    def get_messages(
+        self,
+        max_tokens: int = 2048,
+        max_messages: int = 32 * 1024,  # just a very large number
+    ) -> Dict[str, str]:
+        context = self.get_context(max_tokens=max_tokens, max_messages=max_messages)
+        return self.context2dict(context)
+
+
+def main():
+    context = Context(model=OpenAiModel())
+    message = Message(role=Role.system, content="You are a bot.", model=OpenAiModel())
+    context.add_message(message)
+
+    message = Message(role=Role.user, content="Hello!", model=OpenAiModel())
+    context.add_message(message)
+
+    message = Message(
+        role=Role.assistant, content="Hello to you too!", model=OpenAiModel()
+    )
+    context.add_message(message)
+
+    message = Message(
+        role=Role.user,
+        content="Some long ass string to check what the YAML dump will do with it: will it split it automatically?",
+        model=OpenAiModel(),
+    )
+    context.add_message(message)
+
+    message = Message(
+        role=Role.assistant,
+        content="Some long ass string to check what the YAML dump will do with it: will it split it automatically?\n\nBut this time with line\n\n\nbreaks",
+        model=OpenAiModel(),
+    )
+    context.add_message(message)
+
+    # Save
+    context.save("context.yaml")
+
+    # Loaded
+    loaded_history = Context(model=OpenAiModel())
+    loaded_history.load("context.yaml")
+
+    # Verify that loaded correctly
+    for m in loaded_history.get_context():
+        print(m)
+
+
+if __name__ == "__main__":
+    main()

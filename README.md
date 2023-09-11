@@ -1,5 +1,20 @@
 # ChatGPT CLI
 
+## TODO in this branch
+
+- [X] Add empty line
+- [X] Remove too many different commands
+- [X] Rename options: max tokens should be clear, --out --history inconsistent.
+- [X] Infer default max tokens for context and completion depending on the model
+- [X] Rename the app. "chatgpt_cli chat" is ecessive, moreover, gpt-4 is not chat GPT.
+- [X] Bump the version.
+- [X] Catch `APIConnectionError`
+- [X] Rename history into context
+- [X] Catch `AuthenticationError` error.
+- [X] Add some way to properly uninstall
+- [ ] Show what the model is typing instead of just "Typing" spinner
+- [ ] Add tests.
+
 ## Install
 
 The easiest is to install it with [pipx](https://pypa.github.io/pipx/):
