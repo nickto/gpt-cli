@@ -25,19 +25,3 @@ class OpenAiModel(BaseModel):
     @property
     def max_tokens(self) -> int:
         return self._MAX_TOKENS[self.name]
-
-
-def main():
-    """Example of using the OpenAiModel class."""
-    model = OpenAiModel(name="gpt-4")
-    print(model.max_tokens)
-    print(model.name)
-
-    print()
-    print(model.model_dump())
-    model = OpenAiModel.model_validate(model.model_dump())
-    print(model)
-
-
-if __name__ == "__main__":
-    main()
