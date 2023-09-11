@@ -1,8 +1,20 @@
-from pprint import pprint
+import os
+import tempfile
+
+import pytest
 
 from gpt_cli.chat import Context, Role
 from gpt_cli.message import Message
 from gpt_cli.model import OpenAiModel
+
+
+@pytest.fixture
+def save_filepath():
+    # Get temporary file path
+    with tempfile.NamedTemporaryFile() as f:
+        filepath = f.name
+        print(filepath)
+        yield filepath
 
 
 def test_with_system():
@@ -114,3 +126,24 @@ def test_is_system_set():
 
     assert not context.is_system_set()
     assert context.system.content is None
+
+
+def test_save(save_filepath):
+    model = OpenAiModel(name="gpt-3.5-turbo")
+    context = Context(model=model)
+    assert len(context.get_messages()) == 0
+    context.set_system("You are a helpful assistant.")
+    assert len(context.get_messages()) == 1
+    context.add_message(Message(content="Who is Banksy?", role=Role.user, model=model))
+    assert len(context.get_messages()) == 2
+    context.add_message(
+        Message(content="I don't know", role=Role.assistant, model=model)
+    )
+    context.save(save_filepath)
+
+    # Make sure loaded content is the same
+    loaded_context = Context(model=model).load(save_filepath)
+    assert context.system.content == loaded_context.system.content
+    for m1, m2 in zip(context.messages, loaded_context.messages):
+        assert m1.content == m2.content
+        assert m1.role == m2.role

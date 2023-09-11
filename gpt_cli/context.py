@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import textwrap
 from typing import Dict, List
 
@@ -28,6 +29,11 @@ class Context:
             message.model_dump(mode="json", exclude=["model", "n_tokens"])
             for message in self.messages
         ]
+        if self.is_system_set():
+            messages.insert(
+                0,
+                self.system.model_dump(mode="json", exclude=["model", "n_tokens"]),
+            )
 
         # Instead of using pyyaml or ruamel.yaml, we'll just write the YAML file:
         # couldn't implement the formatting I liked with these libs
@@ -45,8 +51,11 @@ class Context:
                     for line in _.split("\n"):
                         file.write(f"{indent}{line}\n")
 
-    def load(self, filepath: str):
-        messages = yaml.safe_load(filepath)
+    def load(self, filepath: str | io.TextIOWrapper):
+        if isinstance(filepath, str):
+            messages = yaml.safe_load(open(filepath, "r"))
+        else:
+            messages = yaml.safe_load(filepath)
         for m in messages:
             match m["role"]:
                 case "system":
