@@ -31,12 +31,3 @@ class Message(BaseModel):
 
     def __str__(self):
         return f"{self.role.value.title()}: {self.content}"
-
-
-def main():
-    message = Message(role=Role.system, content="Hello", model=OpenAiModel())
-    print(message.model_dump(mode="json"))
-
-
-if __name__ == "__main__":
-    main()
