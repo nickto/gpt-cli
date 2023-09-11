@@ -30,7 +30,7 @@ OUTPUT_OPTION = typer.Option(
 MAX_CONTEXT_TOKENS_OPTION = typer.Option(
     2048,
     help="Max number of tokens in the context.",
-    rich_help_panel="Context",
+    rich_help_panel="Conversation context",
     show_default=False,
 )
 API_KEY_OPTION = typer.Option(
