@@ -1,6 +1,6 @@
 [tool.poetry]
-name = "chatgpt-cli"
-version = "0.2.0"
+name = "gpt-cli"
+version = "0.2.1"
 description = "CLI for OpenAI ChatGPT and instruct models."
 authors = ["Nick To <nick@nickto.net>"]
 license = "MIT"
@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{ include = "gpt_cli" }]
 
 [tool.poetry.scripts]
-chatgpt-cli = "gpt_cli.main:app"
+gpt-cli = "gpt_cli.main:app"
 
 [tool.poetry.dependencies]
 python = "^3.10"

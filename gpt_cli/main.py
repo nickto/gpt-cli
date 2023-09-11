@@ -35,7 +35,7 @@ MAX_CONTEXT_TOKENS_OPTION = typer.Option(
 )
 API_KEY_OPTION = typer.Option(
     None,
-    help="OpenAI API key (run `chatgpt-cli init` to avoid passing it each time).",
+    help="OpenAI API key (run `gpt-cli init` to avoid passing it each time).",
     show_default=False,
     envvar="OPENAI_API_KEY",
     rich_help_panel="Authentication",

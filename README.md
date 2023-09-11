@@ -9,7 +9,7 @@
 The easiest is to install it with [pipx](https://pypa.github.io/pipx/):
 
 ```bash
-pipx install git+https://gitlab.com/nickto/chatgpt-cli.git
+pipx install git+https://gitlab.com/nickto/gpt-cli.git
 ```
 
 ## Set up development environment
