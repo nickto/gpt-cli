@@ -1,4 +1,15 @@
-# ChatGPT CLI
+# GPT CLI
+
+## Why?
+
+My terminal is always at my fingertips, unlike my browser. Moreover, it allows
+
+- tinkering with some GPT parameters,
+- saving and loading conversation context,
+- using GPT-4 without paying 20$ a month.
+
+And, to be honest, I also just wanted to play around with OpenAI API and
+[Typer](https://typer.tiangolo.com/).
 
 ## TODO
 
