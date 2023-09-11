@@ -220,6 +220,8 @@ def chat(
 
             context.set_system(system)
             rich.print(context.system)
+    else:
+        context = None
 
     # Validate model parameters, so that they do not contradict each other
     temperature, top_p, stop = validate_model_parameters(
