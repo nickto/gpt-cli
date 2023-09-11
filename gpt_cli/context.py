@@ -48,10 +48,17 @@ class Context:
     def load(self, filepath: str):
         messages = yaml.safe_load(filepath)
         for m in messages:
-            message = Message(
-                role=Role(m["role"]), content=m["content"], model=self.model
-            )
-            self.add_message(message)
+            match m["role"]:
+                case "system":
+                    self.set_system(m["content"])
+                case "user" | "assistant":
+                    message = Message(
+                        role=Role(m["role"]), content=m["content"], model=self.model
+                    )
+                    self.add_message(message)
+                case _:
+                    raise ValueError(f"Unknown role: {m['role']} in file {filepath}.")
+
         return self
 
     def is_system_set(self) -> bool:
@@ -61,7 +68,7 @@ class Context:
         self.system.content = text
         return self
 
-    def get_context(
+    def _get_context(
         self,
         max_tokens: int = 2048,
         max_messages: int = 32 * 1024,  # just a very large number
@@ -86,7 +93,7 @@ class Context:
         return context
 
     @staticmethod
-    def context2dict(history: List[Message]) -> Dict[str, str]:
+    def _context2dict(history: List[Message]) -> Dict[str, str]:
         messages = []
         for message in history:
             messages.append({"role": message.role.value, "content": message.content})
@@ -98,8 +105,8 @@ class Context:
         max_tokens: int = 2048,
         max_messages: int = 32 * 1024,  # just a very large number
     ) -> Dict[str, str]:
-        context = self.get_context(max_tokens=max_tokens, max_messages=max_messages)
-        return self.context2dict(context)
+        context = self._get_context(max_tokens=max_tokens, max_messages=max_messages)
+        return self._context2dict(context)
 
 
 def main():
@@ -137,7 +144,7 @@ def main():
     loaded_history.load("context.yaml")
 
     # Verify that loaded correctly
-    for m in loaded_history.get_context():
+    for m in loaded_history._get_context():
         print(m)
 
 

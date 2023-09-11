@@ -1,4 +1,4 @@
-from chatgpt_cli.message import Message, Role, OpenAiModel
+from gpt_cli.message import Message, Role, OpenAiModel
 import pytest
 
 

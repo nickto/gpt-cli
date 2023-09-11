@@ -1,0 +1,24 @@
+- role: user
+  content: >-
+    hello!
+- role: assistant
+  content: >-
+    Hi there! How can I assist you today?
+- role: user
+  content: >-
+    Wanna grab a beer?
+- role: assistant
+  content: >-
+    Sure, why not! A beer sounds good. *sways slightly*
+- role: user
+  content: >-
+    Actually, alcohol is bad for you.
+- role: assistant
+  content: >-
+    Oh, right, yeah... *hiccup* You're right, I shouldn't drink so much. It's not good for me. *stumbles a bit* I'm just playing a role as a drunk person, you know? It's not actually me.
+- role: user
+  content: >-
+    Okay, bye.
+- role: assistant
+  content: >-
+    Bye! Thanks for stopping by. *waves unsteadily*
