@@ -1,36 +1,42 @@
 import os
-from typing import Dict, List, Optional, Tuple, Annotated
-from pydantic import ValidationError
+from typing import Annotated, Dict, List, Optional, Tuple
 
 import rich
 import typer
+from pydantic import ValidationError
 from rich.markdown import Markdown
 
 from gpt_cli import pretty
+
 from .chat import Chat, Context
 from .key import OpenaiApiKey
 from .model import OpenAiModel
 
 app = typer.Typer(rich_markup_mode="markdown")
 
+PANE_TITLES = {
+    "context": "Conversation context",
+    "authentication": "Authentication",
+    "params": "Model parameters, more in-depth documentation [link=https://platform.openai.com/docs/api-reference/chat/create]here[/link]",
+}
 
 INPUT_OPTION = typer.Option(
     None,
     help="Previous outputs to start the conversation from.",
     show_default=False,
-    rich_help_panel="Conversation context",
+    rich_help_panel=PANE_TITLES["context"],
 )
 OUTPUT_OPTION = typer.Option(
     None,
     help="Output the whole conversation to a file.",
     metavar="PATH",
     show_default=False,
-    rich_help_panel="Conversation context",
+    rich_help_panel=PANE_TITLES["context"],
 )
 MAX_CONTEXT_TOKENS_OPTION = typer.Option(
-    2048,
+    None,
     help="Max number of tokens in the context.",
-    rich_help_panel="Conversation context",
+    rich_help_panel=PANE_TITLES["context"],
     show_default=False,
 )
 API_KEY_OPTION = typer.Option(
@@ -38,38 +44,38 @@ API_KEY_OPTION = typer.Option(
     help="OpenAI API key (run `gpt-cli init` to avoid passing it each time).",
     show_default=False,
     envvar="OPENAI_API_KEY",
-    rich_help_panel="Authentication",
+    rich_help_panel=PANE_TITLES["authentication"],
 )
 SYSTEM_OPTION = typer.Option(
     None,
-    help="System message for ChatGPT.",
-    rich_help_panel="Model parameters",
+    help="System message: modify assistant's behavior.",
     show_default=False,
+    rich_help_panel=PANE_TITLES["params"],
 )
 TEMPERATURE_OPTION = typer.Option(
     1,
     help="Temperature sampling: higher means more random output.",
     min=0,
     max=2,
-    rich_help_panel="Model parameters",
+    rich_help_panel=PANE_TITLES["params"],
 )
 TOP_P_OPTION = typer.Option(
     1,
     help="Nucleus sampling: higher means more random output.",
     min=0,
     max=1,
-    rich_help_panel="Model parameters",
+    rich_help_panel=PANE_TITLES["params"],
 )
 MODEL_OPTION = typer.Option(
     "gpt-3.5-turbo",
     help="Model name, check [here](https://platform.openai.com/docs/models/model-endpoint-compatibility) for alternative models.",
-    rich_help_panel="Model parameters",
+    rich_help_panel=PANE_TITLES["params"],
     show_default=False,
 )
 MAX_COMPLETION_TOKENS_OPTION = typer.Option(
-    2048,
+    None,
     help="Max number of tokens in the completion.",
-    rich_help_panel="Model parameters",
+    rich_help_panel=PANE_TITLES["params"],
     show_default=False,
 )
 PRESENCE_PENALTY_OPTION = typer.Option(
@@ -77,19 +83,19 @@ PRESENCE_PENALTY_OPTION = typer.Option(
     min=-2,
     max=2,
     help="Penalty for repeating already existing words.",
-    rich_help_panel="Model parameters",
+    rich_help_panel=PANE_TITLES["params"],
 )
 FREQUENCY_PENALTY_OPTION = typer.Option(
     0,
     min=-2,
     max=2,
     help="Penalty for repeating already frequent words.",
-    rich_help_panel="Model parameters",
+    rich_help_panel=PANE_TITLES["params"],
 )
 STOP_OPTION = typer.Option(
     None,
-    help="Sequences where the API will stop generating further tokens.",
-    rich_help_panel="Model parameters",
+    help="Stop sequence(s).",
+    rich_help_panel=PANE_TITLES["params"],
     show_default=False,
 )
 NOWARNING_OPTION = typer.Option(
@@ -176,14 +182,14 @@ def chat(
     input: typer.FileText = INPUT_OPTION,
     output: str = OUTPUT_OPTION,
     max_context_tokens: Optional[int] = MAX_CONTEXT_TOKENS_OPTION,
-    system: Optional[str] = SYSTEM_OPTION,
     model: str = MODEL_OPTION,
-    stop: Optional[List[str]] = STOP_OPTION,
+    system: Optional[str] = SYSTEM_OPTION,
     max_completion_tokens: Optional[int] = MAX_COMPLETION_TOKENS_OPTION,
     temperature: float = TEMPERATURE_OPTION,
     top_p: float = TOP_P_OPTION,
     presence_penalty: float = PRESENCE_PENALTY_OPTION,
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
+    stop: Optional[List[str]] = STOP_OPTION,
     nowarning: bool = NOWARNING_OPTION,
     openai_api_key: str = API_KEY_OPTION,
 ):

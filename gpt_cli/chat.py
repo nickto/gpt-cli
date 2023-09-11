@@ -58,20 +58,39 @@ class Chat:
         if not self.context.is_system_set():
             self.context.set_system(system)
 
+        # Infer and check token counts
+        if max_completion_tokens is not None and max_completion_tokens < 0:
+            pretty.error("--max-completion-tokens should be a positive integer.")
+            quit(1)
+        if max_context_tokens is not None and max_context_tokens < 0:
+            pretty.error("--max-context-tokens should be a positive integer.")
+            quit(1)
+
         if max_completion_tokens:
             self.max_completion_tokens = max_completion_tokens
         else:
             self.max_completion_tokens = self.model.max_tokens // 2
+
         if max_context_tokens:
             self.max_context_tokens = max_context_tokens
         else:
             self.max_context_tokens = self.model.max_tokens - self.max_completion_tokens
+            if self.max_context_tokens < 0:
+                pretty.error(
+                    "'--max-completion-tokens' cannot be larger than the "
+                    "maximum number of tokens allowed by the "
+                    f"'{self.model.name}' model: {self.model.max_tokens:,d}."
+                )
+                quit(1)
+
         if self.max_completion_tokens + self.max_context_tokens > self.model.max_tokens:
-            raise ValueError(
-                "Sum of max_completion_tokens and max_context_tokens "
-                "cannot be larger than the maximum number of tokens allowed by the model: "
-                f"{self.model.max_tokens} for {str(self.model.name)}."
+            pretty.error(
+                "Sum of '--max-completion-tokens' and '--max-context-tokens' "
+                "cannot be larger than the "
+                "maximum number of tokens allowed by the "
+                f"'{self.model.name}' model: {self.model.max_tokens:,d}."
             )
+            quit(1)
 
         self.stop = stop if stop else None  # "" or [] becomes None
         self.temperature = temperature
