@@ -14,6 +14,7 @@ And, to be honest, I also just wanted to play around with OpenAI API and
 ## TODO
 
 - [ ] Show what the model is typing instead of just "Typing" spinner
+- [ ] Improve README with usage demos.
 
 ## Install
 
