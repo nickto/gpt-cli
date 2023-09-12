@@ -24,6 +24,10 @@ The easiest is to install it with [pipx](https://pypa.github.io/pipx/):
 pipx install git+https://gitlab.com/nickto/gpt-cli.git
 ```
 
+## Use
+
+TODO
+
 ## Set up development environment
 
 ### Install required Python version with [pyenv](https://github.com/pyenv/pyenv)
