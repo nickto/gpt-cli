@@ -43,7 +43,7 @@ class Context:
                 file.write(f"  content: >-\n")
                 wrapped = textwrap.wrap(
                     message["content"],
-                    width=40,
+                    width=80,
                     replace_whitespace=False,
                 )
                 indent = 4 * " "
