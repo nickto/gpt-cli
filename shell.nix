@@ -2,7 +2,7 @@ with ( import (builtins.fetchTarball https://channels.nixos.org/nixpkgs-23.05-da
 mkShell {
   buildInputs = [
     poetry
-    python310
+    python311
   ];
   shellHook = ''
     # Set up virtual environment
