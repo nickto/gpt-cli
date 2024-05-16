@@ -17,6 +17,7 @@ typer = { version = "^0.7.0", extras = ["all"] }
 tiktoken = "^0.3.2"
 pydantic = "^2.1.1"
 pyyaml = "^6.0.1"
+prompt-toolkit = "^3.0.43"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.1.0"
