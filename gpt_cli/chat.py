@@ -14,7 +14,7 @@ from openai.error import (
     ServiceUnavailableError,
 )
 from rich.markdown import Markdown
-from rich.prompt import Prompt
+from .prompt import prompt
 
 from gpt_cli import pretty
 
@@ -113,18 +113,8 @@ class Chat:
 
     @staticmethod
     def ask_for_input() -> str:
-        prompt = Prompt
-        prompt.prompt_suffix = "> "
-        user_input = ""
-        while True:
-            user_input += prompt.ask()
-            if user_input.strip()[-1] != "\\":
-                break
-            else:
-                # Change \ for \n
-                user_input = user_input[:-1]
-                user_input += "\n"
-        if user_input in ("exit", "quit", ":q"):
+        user_input = prompt()
+        if user_input.lower().strip() in ("exit", "quit", ":q"):
             raise typer.Exit()
 
         return user_input
