@@ -195,7 +195,10 @@ def chat(
 ):
     """Start an interactive chat.
 
-    For multiline inputs use backslashes. Type "exit" or press Ctrl + C to exit the chat.
+    For multiline inputs use backslashes or use Meta + Enter (sometimes it does
+    not work, then try Esc + Enter).
+
+    Type "exit" or press Ctrl + C to exit the chat.
     """
     openai_api_key = OpenaiApiKey(openai_api_key)
 
