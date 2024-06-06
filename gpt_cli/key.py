@@ -18,7 +18,7 @@ class OpenaiApiKey:
             if not os.path.exists(self.path):
                 pretty.error(
                     f"{self.path} does not exist: could not read OpenAI API key. "
-                    "Have you already run `gpt-clit init`?"
+                    "Have you already run `gpt-cli init`?"
                 )
                 raise typer.Abort()
             with open(self.path, "r") as f:
