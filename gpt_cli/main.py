@@ -2,6 +2,7 @@ import os
 from typing import Annotated, Dict, List, Optional, Tuple
 
 import rich
+import rich.prompt
 import typer
 from pydantic import ValidationError
 from rich.markdown import Markdown
