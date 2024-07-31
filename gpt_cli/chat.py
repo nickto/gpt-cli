@@ -16,7 +16,6 @@ from openai.error import (
 from rich.console import Console
 from rich.live import Live
 from rich.markdown import Markdown
-from rich.padding import Padding
 
 from gpt_cli import pretty
 
