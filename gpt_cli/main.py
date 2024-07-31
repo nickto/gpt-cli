@@ -1,11 +1,10 @@
 import os
-from typing import Annotated, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import rich
 import rich.prompt
 import typer
 from pydantic import ValidationError
-from rich.markdown import Markdown
 
 from gpt_cli import pretty
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, computed_field, model_validator
+from pydantic import BaseModel, computed_field, model_validator
 
 from .model import OpenAiModel
 from .role import Role

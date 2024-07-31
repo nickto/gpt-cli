@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Dict
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import BaseModel, Field, computed_field
 
 
 class ModelName(str, Enum):

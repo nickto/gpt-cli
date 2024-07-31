@@ -13,7 +13,7 @@ class OpenaiApiKey:
         if openai_api_key:
             self.openai_api_key = openai_api_key
         elif os.getenv("OPENAI_API_KEY"):
-            self.openai_api_key = os.getenv("OPENAI_API_KEY")
+            self.openai_api_key = os.getenv("OPENAI_API_KEY")  # type: ignore (this branch is executed when the env var is set)
         else:
             if not os.path.exists(self.path):
                 pretty.error(
