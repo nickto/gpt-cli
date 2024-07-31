@@ -109,6 +109,11 @@ NOCONFIRM_OPTION = typer.Option(
     "--noconfirm",
     help="Answer yes to all confirmation messages.",
 )
+NOSTREAM_OPTION = typer.Option(
+    False,
+    "--no-stream",
+    help="Do not stream the chat.",
+)
 
 
 def validate_model_parameters(
@@ -180,7 +185,7 @@ def deinit(noconfirm: bool = NOCONFIRM_OPTION):
 
 @app.command()
 def chat(
-    input: typer.FileText | None = INPUT_OPTION,
+    input: Optional[typer.FileText] = INPUT_OPTION,
     output: str = OUTPUT_OPTION,
     max_context_tokens: Optional[int] = MAX_CONTEXT_TOKENS_OPTION,
     model: str = MODEL_OPTION,  # type: ignore
@@ -193,6 +198,7 @@ def chat(
     stop: Optional[List[str]] = STOP_OPTION,
     nowarning: bool = NOWARNING_OPTION,
     openai_api_key: str = API_KEY_OPTION,  # type: ignore
+    nostream: bool = NOSTREAM_OPTION,
 ):
     """Start an interactive chat.
 
@@ -252,6 +258,7 @@ def chat(
         presence_penalty=presence_penalty,
         frequency_penalty=frequency_penalty,
         context=context,
+        stream_output=not nostream,
     )
     chat.start()
 

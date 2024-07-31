@@ -13,7 +13,10 @@ from openai.error import (
     RateLimitError,
     ServiceUnavailableError,
 )
+from rich.console import Console
+from rich.live import Live
 from rich.markdown import Markdown
+from rich.padding import Padding
 
 from gpt_cli import pretty
 
@@ -44,8 +47,12 @@ class Chat:
         top_p: float = 1,
         presence_penalty: float = 0,
         frequency_penalty: float = 0,
+        stream_output: bool = True,
     ):
+        self.stream_output = stream_output
+
         openai.api_key = api_key.get()
+
         if isinstance(model, str):
             self.model = OpenAiModel(name=ModelName(model))
         else:
@@ -166,15 +173,39 @@ class Chat:
             success = False
             while not success:
                 try:
-                    completion = pretty.typing_animation(
-                        ChatCompletion.create,
-                        model=self.model.name,
-                        messages=self.context.get_messages(
-                            max_context_tokens=self.max_context_tokens
-                        ),
-                        **self.chat_completion_params,
-                    )
-                    success = True
+                    if self.stream_output:
+                        output_stream = pretty.typing_animation(
+                            func=ChatCompletion.create,
+                            text="Thinking...",
+                            model=self.model.name,
+                            messages=self.context.get_messages(
+                                max_context_tokens=self.max_context_tokens
+                            ),
+                            stream=True,
+                            stream_options={"include_usage": True},
+                            **self.chat_completion_params,
+                        )
+                        assistant_reply = ""
+                        rich.print()
+                        console = Console()
+                        with Live(console=console, refresh_per_second=50) as live:
+                            for chunk in output_stream:
+                                if chunk.choices and chunk.choices[0].delta:
+                                    assistant_reply += chunk.choices[0].delta.content
+                                    live.update(Markdown(assistant_reply))
+                        rich.print()
+                        success = True
+                    else:
+                        completion = pretty.typing_animation(
+                            func=ChatCompletion.create,
+                            text="Typing...",
+                            model=self.model.name,
+                            messages=self.context.get_messages(
+                                max_context_tokens=self.max_context_tokens
+                            ),
+                            **self.chat_completion_params,
+                        )
+                        success = True
                 except RateLimitError:
                     s = self.RETRY_SLEEP
                     msg = f"RateLimitError: retrying in {s:d} seconds."
@@ -202,13 +233,24 @@ class Chat:
                     pretty.error(msg)
                     quit(1)
 
-            assistant_reply = completion.choices[0].message["content"]  # type: ignore (we know it is bound)
-            self.context.add_message(
-                Message(content=assistant_reply, role=Role.assistant, model=self.model)
-            )
-            rich.print()
-            rich.print(Markdown(assistant_reply))
-            rich.print()
+            if self.stream_output:
+                # `assistant_reply` is already filled in the stream loop, so no need to retrieve it again
+                assert isinstance(assistant_reply, str)  # type: ignore (we know it is bound)
+                self.context.add_message(
+                    Message(
+                        content=assistant_reply, role=Role.assistant, model=self.model
+                    )
+                )
+            else:
+                assistant_reply = completion.choices[0].message["content"]  # type: ignore (we know it is bound)
+                self.context.add_message(
+                    Message(
+                        content=assistant_reply, role=Role.assistant, model=self.model
+                    )
+                )
+                rich.print()
+                rich.print(Markdown(assistant_reply))
+                rich.print()
 
             if self.out:
                 self.context.save(self.out)

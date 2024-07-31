@@ -14,10 +14,10 @@ def warning(text: str) -> None:
     print(f"[bold yellow]Warning:[/bold yellow] {text}")
 
 
-def typing_animation(func: Callable, *args, **kwargs):
+def typing_animation(func: Callable, text: str = "Typing...", *args, **kwargs):
     with Progress(
         SpinnerColumn(),
-        TextColumn("Typing..."),
+        TextColumn(text),
         transient=True,
     ) as progress:
         progress.add_task(description="Processing request", total=None)
@@ -44,4 +44,4 @@ if __name__ == "__main__":
 
     warning("Test warning")
     error("Test error")
-    typing_animation(lambda _: time.sleep(1), None)
+    typing_animation(lambda _: time.sleep(1), "Thinking...")
