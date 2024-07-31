@@ -6,19 +6,21 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 class ModelName(str, Enum):
     # Source: https://platform.openai.com/docs/models/gpt-4
-    gpt_4 = "gpt-4"
-    gpt_4_32k = "gpt-4-32k"
     gpt_3_5_turbo = "gpt-3.5-turbo"
-    gpt_3_5_turbo_16k = "gpt-3.5-turbo-16k"
+    gpt_4 = "gpt-4"
+    gpt_4_turbo = "gpt-4-turbo"
+    gpt_4o = "gpt-4o"
+    gpt_4o_mini = "gpt-4o-mini"
 
 
 class OpenAiModel(BaseModel):
-    name: ModelName = Field(default=ModelName.gpt_3_5_turbo)
+    name: ModelName = Field(default=ModelName.gpt_4o_mini)
     _MAX_TOKENS: Dict[ModelName, int] = {
-        ModelName.gpt_4: 8_192,
-        ModelName.gpt_4_32k: 32_768,
         ModelName.gpt_3_5_turbo: 4_096,
-        ModelName.gpt_3_5_turbo_16k: 16_384,
+        ModelName.gpt_4: 8_192,
+        ModelName.gpt_4_turbo: 128_000,
+        ModelName.gpt_4o: 128_000,
+        ModelName.gpt_4o_mini: 128_000,
     }
 
     @computed_field
