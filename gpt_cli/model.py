@@ -15,9 +15,7 @@ class ModelName(str, Enum):
 
 class OpenAiModel(BaseModel):
     name: ModelName = Field(default=ModelName.gpt_4o_mini)
-    # This is max completion, not max context tokens
-    # TODO: allow both values and treat them correctly
-    _MAX_TOKENS: Dict[ModelName, int] = {
+    _MAX_OUTPUT_TOKENS: Dict[ModelName, int] = {
         ModelName.gpt_3_5_turbo: 4_096,
         ModelName.gpt_4: 8_192,
         ModelName.gpt_4_turbo: 4_096,
@@ -25,7 +23,20 @@ class OpenAiModel(BaseModel):
         ModelName.gpt_4o_mini: 16_384,
     }
 
+    _MAX_CONTEXT_TOKENS: Dict[ModelName, int] = {
+        ModelName.gpt_3_5_turbo: 16_385,
+        ModelName.gpt_4: 8_192,
+        ModelName.gpt_4_turbo: 128_000,
+        ModelName.gpt_4o: 128_000,
+        ModelName.gpt_4o_mini: 128_000,
+    }
+
     @computed_field
     @property
-    def max_tokens(self) -> int:
-        return self._MAX_TOKENS[self.name]
+    def max_output_tokens(self) -> int:
+        return self._MAX_OUTPUT_TOKENS[self.name]
+
+    @computed_field
+    @property
+    def max_context_tokens(self) -> int:
+        return self._MAX_CONTEXT_TOKENS[self.name]

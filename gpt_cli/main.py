@@ -11,7 +11,7 @@ from gpt_cli import pretty
 
 from .chat import Chat, Context
 from .key import OpenaiApiKey
-from .model import OpenAiModel
+from .model import OpenAiModel, ModelName
 
 app = typer.Typer(rich_markup_mode="markdown")
 
@@ -73,9 +73,9 @@ MODEL_OPTION = typer.Option(
     rich_help_panel=PANE_TITLES["params"],
     show_default=False,
 )
-MAX_COMPLETION_TOKENS_OPTION = typer.Option(
+MAX_OUTPUT_TOKENS_OPTION = typer.Option(
     None,
-    help="Max number of tokens in the completion.",
+    help="Max number of tokens in the output.",
     rich_help_panel=PANE_TITLES["params"],
     show_default=False,
 )
@@ -180,19 +180,19 @@ def deinit(noconfirm: bool = NOCONFIRM_OPTION):
 
 @app.command()
 def chat(
-    input: typer.FileText = INPUT_OPTION,
+    input: typer.FileText | None = INPUT_OPTION,
     output: str = OUTPUT_OPTION,
     max_context_tokens: Optional[int] = MAX_CONTEXT_TOKENS_OPTION,
-    model: str = MODEL_OPTION,
+    model: str = MODEL_OPTION,  # type: ignore
     system: Optional[str] = SYSTEM_OPTION,
-    max_completion_tokens: Optional[int] = MAX_COMPLETION_TOKENS_OPTION,
+    max_output_tokens: Optional[int] = MAX_OUTPUT_TOKENS_OPTION,
     temperature: float = TEMPERATURE_OPTION,
     top_p: float = TOP_P_OPTION,
     presence_penalty: float = PRESENCE_PENALTY_OPTION,
     frequency_penalty: float = FREQUENCY_PENALTY_OPTION,
     stop: Optional[List[str]] = STOP_OPTION,
     nowarning: bool = NOWARNING_OPTION,
-    openai_api_key: str = API_KEY_OPTION,
+    openai_api_key: str = API_KEY_OPTION,  # type: ignore
 ):
     """Start an interactive chat.
 
@@ -201,10 +201,10 @@ def chat(
 
     Type "exit" or press Ctrl + C to exit the chat.
     """
-    openai_api_key = OpenaiApiKey(openai_api_key)
+    openai_api_key: OpenaiApiKey = OpenaiApiKey(openai_api_key)
 
     try:
-        model = OpenAiModel(name=model)
+        model: OpenAiModel = OpenAiModel(name=ModelName(model))
     except ValidationError:
         pretty.error(
             f'Model "{model}" is not supported. '
@@ -218,7 +218,7 @@ def chat(
         try:
             context = Context(model=model).load(input)
         except ValueError as e:
-            pretty.error(e)
+            pretty.error(str(e))
             raise typer.Abort()
 
         # Check that there are no contradictions between the system in the
@@ -245,7 +245,7 @@ def chat(
         system=system,
         model=model,
         stop=stop,
-        max_completion_tokens=max_completion_tokens,
+        max_output_tokens=max_output_tokens,
         max_context_tokens=max_context_tokens,
         temperature=temperature,
         top_p=top_p,

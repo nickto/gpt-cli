@@ -97,7 +97,9 @@ def test_limit_tokens():
     context.add_message(
         Message(content="Yes I am sure.", role=Role.assistant, model=model)
     )
-    assert len(context.get_messages(max_tokens=15)) == 3  # checked manually, seemed ok
+    assert (
+        len(context.get_messages(max_context_tokens=15)) == 3
+    )  # checked manually, seemed ok
 
 
 def test_load():

@@ -26,13 +26,13 @@ class Context:
 
     def save(self, filepath: str):
         messages = [
-            message.model_dump(mode="json", exclude=["model", "n_tokens"])
+            message.model_dump(mode="json", exclude=["model", "n_tokens"])  # type: ignore
             for message in self.messages
         ]
         if self.is_system_set():
             messages.insert(
                 0,
-                self.system.model_dump(mode="json", exclude=["model", "n_tokens"]),
+                self.system.model_dump(mode="json", exclude=["model", "n_tokens"]),  # type: ignore
             )
 
         # Instead of using pyyaml or ruamel.yaml, we'll just write the YAML file:
@@ -40,7 +40,7 @@ class Context:
         with open(filepath, "w") as file:
             for message in messages:
                 file.write(f"- role: {message['role']}\n")
-                file.write(f"  content: >-\n")
+                file.write("  content: >-\n")
                 wrapped = textwrap.wrap(
                     message["content"],
                     width=80,
@@ -73,20 +73,20 @@ class Context:
     def is_system_set(self) -> bool:
         return self.system.content is not None
 
-    def set_system(self, text: str) -> Context:
+    def set_system(self, text: str | None) -> Context:
         self.system.content = text
         return self
 
     def _get_context(
         self,
-        max_tokens: int = 2048,
+        max_context_tokens: int = 2048,
         max_messages: int = 32 * 1024,  # just a very large number
     ) -> List[Message]:
         context_tokens = self.system.n_tokens
         context = []
         for message in reversed(self.messages):
             # Will token count be ok?
-            ok_to_add = (context_tokens + message.n_tokens) <= max_tokens
+            ok_to_add = (context_tokens + message.n_tokens) <= max_context_tokens
             # Will message count be ok?
             ok_to_add = ok_to_add and (len(context) < max_messages)
 
@@ -102,7 +102,7 @@ class Context:
         return context
 
     @staticmethod
-    def _context2dict(history: List[Message]) -> Dict[str, str]:
+    def _context2dict(history: List[Message]) -> List[Dict[str, str]]:
         messages = []
         for message in history:
             messages.append({"role": message.role.value, "content": message.content})
@@ -111,8 +111,10 @@ class Context:
 
     def get_messages(
         self,
-        max_tokens: int = 2048,
+        max_context_tokens: int = 2048,
         max_messages: int = 32 * 1024,  # just a very large number
-    ) -> Dict[str, str]:
-        context = self._get_context(max_tokens=max_tokens, max_messages=max_messages)
+    ) -> List[Dict[str, str]]:
+        context = self._get_context(
+            max_context_tokens=max_context_tokens, max_messages=max_messages
+        )
         return self._context2dict(context)

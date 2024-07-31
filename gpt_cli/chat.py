@@ -14,7 +14,6 @@ from openai.error import (
     ServiceUnavailableError,
 )
 from rich.markdown import Markdown
-from .prompt import prompt
 
 from gpt_cli import pretty
 
@@ -22,22 +21,24 @@ from .constants import DEFAULT_SYSTEM
 from .context import Context
 from .key import OpenaiApiKey
 from .message import Message
+from .model import ModelName, OpenAiModel
+from .prompt import prompt
 from .role import Role
 
 
 class Chat:
     RETRY_SLEEP: int = 10
-    chat_completion_params: Dict[str, str | float | int | List[str]]
+    chat_completion_params: Dict[str, str | float | int | List[str] | None]
 
     def __init__(
         self,
         api_key: OpenaiApiKey,
-        model: str = "gpt-3.5-turbo",
+        model: str | OpenAiModel = OpenAiModel(name=ModelName.gpt_4o_mini),
         system: str | None = None,
-        out: str = None,
-        context: Context = None,
+        out: str | None = None,
+        context: Context | None = None,
         stop: List[str] | None = None,
-        max_completion_tokens: int | None = None,
+        max_output_tokens: int | None = None,
         max_context_tokens: int | None = None,
         temperature: float = 0.2,
         top_p: float = 1,
@@ -45,13 +46,17 @@ class Chat:
         frequency_penalty: float = 0,
     ):
         openai.api_key = api_key.get()
-        self.model = model
+        if isinstance(model, str):
+            self.model = OpenAiModel(name=ModelName(model))
+        else:
+            assert isinstance(model, OpenAiModel)
+            self.model = model
         self.out = out
 
         if context:
             self.context = context
         else:
-            self.context = Context(model=model)
+            self.context = Context(model=self.model)
 
         if system is None:
             self.system = DEFAULT_SYSTEM
@@ -59,36 +64,55 @@ class Chat:
             self.context.set_system(system)
 
         # Infer and check token counts
-        if max_completion_tokens is not None and max_completion_tokens < 0:
+        if max_output_tokens is not None and max_output_tokens < 0:
             pretty.error("--max-completion-tokens should be a positive integer.")
             quit(1)
         if max_context_tokens is not None and max_context_tokens < 0:
             pretty.error("--max-context-tokens should be a positive integer.")
             quit(1)
 
-        if max_completion_tokens:
-            self.max_completion_tokens = max_completion_tokens
+        if max_output_tokens:
+            if max_output_tokens > self.model.max_output_tokens:
+                pretty.error(
+                    "'--max-completion-tokens' cannot be larger than the "
+                    "maximum number of tokens allowed by the "
+                    f"'{self.model.name}' model: {self.model.max_output_tokens:,d}."
+                )
+                quit(1)
+            self.max_output_tokens = max_output_tokens
         else:
-            self.max_completion_tokens = self.model.max_tokens // 2
+            self.max_output_tokens = self.model.max_output_tokens
 
         if max_context_tokens:
+            if max_context_tokens > self.model.max_context_tokens:
+                pretty.error(
+                    "'--max-context-tokens' cannot be larger than the "
+                    "maximum number of tokens allowed by the "
+                    f"'{self.model.name}' model: {self.model.max_context_tokens:,d}."
+                )
+                quit(1)
             self.max_context_tokens = max_context_tokens
         else:
-            self.max_context_tokens = self.model.max_tokens - self.max_completion_tokens
+            self.max_context_tokens = (
+                self.model.max_context_tokens - self.max_output_tokens
+            )
             if self.max_context_tokens < 0:
                 pretty.error(
                     "'--max-completion-tokens' cannot be larger than the "
                     "maximum number of tokens allowed by the "
-                    f"'{self.model.name}' model: {self.model.max_tokens:,d}."
+                    f"'{self.model.name}' model: {self.model.max_output_tokens:,d}."
                 )
                 quit(1)
 
-        if self.max_completion_tokens + self.max_context_tokens > self.model.max_tokens:
+        if (
+            self.max_output_tokens + self.max_context_tokens
+            > self.model.max_context_tokens
+        ):
             pretty.error(
                 "Sum of '--max-completion-tokens' and '--max-context-tokens' "
                 "cannot be larger than the "
                 "maximum number of tokens allowed by the "
-                f"'{self.model.name}' model: {self.model.max_tokens:,d}."
+                f"'{self.model.name}' model: {self.model.max_output_tokens:,d}."
             )
             quit(1)
 
@@ -104,7 +128,7 @@ class Chat:
 
         self.chat_completion_params = {
             "stop": self.stop,
-            "max_tokens": self.max_completion_tokens,
+            "max_tokens": self.max_output_tokens,
             "temperature": self.temperature,
             "top_p": self.top_p,
             "presence_penalty": self.presence_penalty,
@@ -146,7 +170,7 @@ class Chat:
                         ChatCompletion.create,
                         model=self.model.name,
                         messages=self.context.get_messages(
-                            max_tokens=self.model.max_tokens,
+                            max_context_tokens=self.max_context_tokens
                         ),
                         **self.chat_completion_params,
                     )
@@ -178,7 +202,7 @@ class Chat:
                     pretty.error(msg)
                     quit(1)
 
-            assistant_reply = completion.choices[0].message["content"]
+            assistant_reply = completion.choices[0].message["content"]  # type: ignore (we know it is bound)
             self.context.add_message(
                 Message(content=assistant_reply, role=Role.assistant, model=self.model)
             )
