@@ -1,11 +1,13 @@
 import os
-from typing import List, Optional, Tuple
+from importlib import metadata
+from typing import List, Optional, Tuple, Annotated
 
 import rich
 import rich.prompt
 import typer
 from pydantic import ValidationError
 
+import gpt_cli
 from gpt_cli import pretty
 
 from .chat import Chat, Context
@@ -180,6 +182,35 @@ def deinit(noconfirm: bool = NOCONFIRM_OPTION):
 
     # Remove
     os.remove(api_key_path)
+
+
+def print_version_callback(version: bool):
+    if version:
+        pretty.print(f"Version: {metadata.version(gpt_cli.__name__)}")
+        raise typer.Exit()
+
+
+@app.callback(
+    invoke_without_command=True,
+    no_args_is_help=True,
+)
+def main(
+    version: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--version",
+            is_eager=True,
+            callback=print_version_callback,
+            help="Print out the version of the GPI CLI.",
+        ),
+    ] = False,
+):
+    """GPT CLI improves your terminal's experience."""
+
+    if version: # add a variable usage to make static analysis happier
+        pass
+
+    pretty.print(f"Version: {metadata.version(gpt_cli.__name__)}")
 
 
 @app.command()

@@ -13,7 +13,7 @@ gpt-cli = "gpt_cli.main:app"
 [tool.poetry.dependencies]
 python = "^3.10,<3.13"
 openai = "^0.27.2"
-typer = { version = "^0.7.0", extras = ["all"] }
+typer = { version = "^0.12.0", extras = ["all"] }
 tiktoken = "^0.7.0"
 pydantic = "^2.1.1"
 pyyaml = "^6.0.1"
