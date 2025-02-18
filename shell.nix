@@ -1,18 +1,14 @@
-with ( import (builtins.fetchTarball https://channels.nixos.org/nixpkgs-23.05-darwin/nixexprs.tar.xz) {});
+with ( import (builtins.fetchTarball https://channels.nixos.org/nixos-24.11/nixexprs.tar.xz) {});
 mkShell {
   buildInputs = [
-    poetry
-    python311
+    uv
   ];
   shellHook = ''
     # Set up virtual environment
     if [ ! -d .venv ]; then
         echo "No .venv found, creating..."
-        python -m venv .venv
+        uv venv .venv --python 3.11
     fi;
     source .venv/bin/activate
-
-    export LD_LIBRARY_PATH=${pkgs.zlib}/lib:$LD_LIBRARY_PATH
-    export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH
   '';
 }

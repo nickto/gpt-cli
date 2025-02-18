@@ -18,10 +18,14 @@ And, to be honest, I also just wanted to play around with OpenAI API and
 
 ## Install
 
-The easiest is to install it with [pipx](https://pypa.github.io/pipx/):
+The easiest is to install it with [pipx](https://pypa.github.io/pipx/) or [uv tools](https://docs.astral.sh/uv/#tools):
 
 ```bash
 pipx install git+https://gitlab.com/nickto/gpt-cli.git
+```
+
+```bash
+uv tool install https://gitlab.com/nickto/gpt-cli.git
 ```
 
 ## Use
@@ -30,27 +34,20 @@ TODO
 
 ## Set up development environment
 
-### Install required Python version with [pyenv](https://github.com/pyenv/pyenv)
+### Use [Nix](https://nix.dev/manual/nix/2.18/command-ref/nix-shell) and [direnv](https://direnv.net/)
 
-You can skip this if you system version is already compatible with the
-requirements in `pyproject.toml`.
+Create the following `.envrc` file
 
-```bash
-pyenv install 3.11.2 # or any other compatible version
+```
+use nix
 ```
 
-### Create virtual environment
+Then run `direnv allow`. This should handle the setup.
 
-If you are using system Python:
-
-```bash
-/usr/bin/env python -m venv .venv
-```
-
-If you are using pyenv:
+### Use [uv](https://docs.astral.sh/uv/) explicitly
 
 ```bash
-$(pyenv shell 3.11.2; python -m venv .venv)
+uv venv .venv --python 3.11
 ```
 
 ### Activate virtual environment
@@ -65,20 +62,8 @@ and when done working on this project:
 deactivate
 ```
 
-Alternatively, automate it with [direnv](https://direnv.net/):
-
-```bash
-echo 'source .venv/bin/activate\nunset PS1' >> .envrc && direnv allow
-```
-
 ### Install dependencies
 
 ```bash
-poetry install
-```
-
-Make sure you have installed all the dependencies:
-
-```bash
-poetry install | grep -q 'No dependencies to install or update' && echo "All good\!" || echo "Some packages are missing :("
+uv sync
 ```
