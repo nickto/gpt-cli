@@ -5,30 +5,30 @@ from pydantic import BaseModel, Field, computed_field
 
 
 class ModelName(str, Enum):
-    # Source: https://platform.openai.com/docs/models/gpt-4
-    gpt_3_5_turbo = "gpt-3.5-turbo"
-    gpt_4 = "gpt-4"
-    gpt_4_turbo = "gpt-4-turbo"
+    # Source: https://platform.openai.com/docs/models/gpt-4o
     gpt_4o = "gpt-4o"
     gpt_4o_mini = "gpt-4o-mini"
+    gpt_o1 = "o1"
+    gpt_o1_mini = "o1-mini"
+    gpt_o3_mini = "o3-mini"
 
 
 class OpenAiModel(BaseModel):
     name: ModelName = Field(default=ModelName.gpt_4o_mini)
     _MAX_OUTPUT_TOKENS: Dict[ModelName, int] = {
-        ModelName.gpt_3_5_turbo: 4_096,
-        ModelName.gpt_4: 8_192,
-        ModelName.gpt_4_turbo: 4_096,
-        ModelName.gpt_4o: 4_096,
+        ModelName.gpt_4o: 16_384,
         ModelName.gpt_4o_mini: 16_384,
+        ModelName.gpt_o1: 100_000,
+        ModelName.gpt_o1_mini: 65_536,
+        ModelName.gpt_o3_mini: 100_000,
     }
 
     _MAX_CONTEXT_TOKENS: Dict[ModelName, int] = {
-        ModelName.gpt_3_5_turbo: 16_385,
-        ModelName.gpt_4: 8_192,
-        ModelName.gpt_4_turbo: 128_000,
         ModelName.gpt_4o: 128_000,
         ModelName.gpt_4o_mini: 128_000,
+        ModelName.gpt_o1: 200_000,
+        ModelName.gpt_o1_mini: 128_000,
+        ModelName.gpt_o3_mini: 200_000,
     }
 
     @computed_field

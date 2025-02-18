@@ -134,7 +134,7 @@ class Chat:
 
         self.chat_completion_params = {
             "stop": self.stop,
-            "max_tokens": self.max_output_tokens,
+            "max_completion_tokens": self.max_output_tokens,
             "temperature": self.temperature,
             "top_p": self.top_p,
             "presence_penalty": self.presence_penalty,
