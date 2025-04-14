@@ -69,7 +69,7 @@ TOP_P_OPTION = typer.Option(
     rich_help_panel=PANE_TITLES["params"],
 )
 MODEL_OPTION = typer.Option(
-    "gpt-3.5-turbo",
+    "gpt-4o-mini",
     help="Model name, check [here](https://platform.openai.com/docs/models/model-endpoint-compatibility) for alternative models.",
     rich_help_panel=PANE_TITLES["params"],
     show_default=False,
@@ -207,7 +207,7 @@ def main(
 ):
     """GPT CLI improves your terminal's experience."""
 
-    if version: # add a variable usage to make static analysis happier
+    if version:  # add a variable usage to make static analysis happier
         pass
 
     pretty.print(f"Version: {metadata.version(gpt_cli.__name__)}")
