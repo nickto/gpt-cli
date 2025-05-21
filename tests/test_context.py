@@ -1,11 +1,10 @@
-import os
 import tempfile
 
 import pytest
 
 from gpt_cli.chat import Context, Role
 from gpt_cli.message import Message
-from gpt_cli.model import OpenAiModel
+from gpt_cli.model import OpenAiModel, ModelName
 
 
 @pytest.fixture
@@ -17,8 +16,8 @@ def save_filepath():
         yield filepath
 
 
-def test_with_system():
-    model = OpenAiModel(name="gpt-3.5-turbo")
+def test_with_system(default_model_for_tests):
+    model = default_model_for_tests
     context = Context(model=model)
     assert len(context.get_messages()) == 0
     context.set_system("You are a helpful assistant.")
@@ -31,8 +30,8 @@ def test_with_system():
     assert len(context.get_messages()) == 3
 
 
-def test_without_system():
-    model = OpenAiModel(name="gpt-3.5-turbo")
+def test_without_system(default_model_for_tests):
+    model = default_model_for_tests
     context = Context(model=model)
     assert len(context.get_messages()) == 0
     context.add_message(Message(content="Who is Banksy?", role=Role.user, model=model))
@@ -43,8 +42,8 @@ def test_without_system():
     assert len(context.get_messages()) == 2
 
 
-def test_limit_messages_with_system():
-    model = OpenAiModel(name="gpt-3.5-turbo")
+def test_limit_messages_with_system(default_model_for_tests):
+    model = default_model_for_tests
     context = Context(model=model)
     context.set_system("You are a helpful assistant.")
     assert len(context.get_messages()) == 1
@@ -63,8 +62,8 @@ def test_limit_messages_with_system():
     assert len(context.get_messages(max_messages=2)) == 3  # 3 because have system
 
 
-def test_limit_messages_without_system():
-    model = OpenAiModel(name="gpt-3.5-turbo")
+def test_limit_messages_without_system(default_model_for_tests):
+    model = default_model_for_tests
     context = Context(model=model)
     assert len(context.get_messages()) == 0
     context.add_message(Message(content="Who is Banksy?", role=Role.user, model=model))
@@ -81,8 +80,8 @@ def test_limit_messages_without_system():
     assert len(context.get_messages(max_messages=2)) == 2
 
 
-def test_limit_tokens():
-    model = OpenAiModel(name="gpt-3.5-turbo")
+def test_limit_tokens(default_model_for_tests):
+    model = default_model_for_tests
     context = Context(model=model)
     context.set_system("You are a helpful assistant.")
     assert len(context.get_messages()) == 1
@@ -102,8 +101,8 @@ def test_limit_tokens():
     )  # checked manually, seemed ok
 
 
-def test_load():
-    model = OpenAiModel(name="gpt-3.5-turbo")
+def test_load(default_model_for_tests):
+    model = default_model_for_tests
     context = Context(model)
     context.load(open("tests/assets/context_w_system.yaml", "r"))
 
@@ -111,8 +110,8 @@ def test_load():
     assert len(context.messages) > 0
 
 
-def test_is_system_set():
-    model = OpenAiModel(name="gpt-3.5-turbo")
+def test_is_system_set(default_model_for_tests):
+    model = default_model_for_tests
     context = Context(model)
 
     context.load(open("tests/assets/context_w_system.yaml", "r"))
@@ -130,8 +129,8 @@ def test_is_system_set():
     assert context.system.content is None
 
 
-def test_save(save_filepath):
-    model = OpenAiModel(name="gpt-3.5-turbo")
+def test_save(save_filepath, default_model_for_tests):
+    model = default_model_for_tests
     context = Context(model=model)
     assert len(context.get_messages()) == 0
     context.set_system("You are a helpful assistant.")

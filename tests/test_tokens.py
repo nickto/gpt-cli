@@ -1,7 +1,9 @@
+import pytest
+
 from gpt_cli.tokens import count_tokens
 
 
-def test_count_tokens():
+def test_count_tokens(default_model_for_tests):
+    model = default_model_for_tests
     text = "Hello, world!"
-    model = "gpt-3.5-turbo"
-    assert count_tokens(text, model) == 4
+    assert count_tokens(text, model.name) == 4
