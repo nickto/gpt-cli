@@ -13,21 +13,21 @@ class ModelName(str, Enum):
     gpt_o3_mini = "o3-mini"
     gpt_o3 = "o3"
     gpt_o1 = "o1"
-    gpt_o1_pro = "o1-pro"
+    # gpt_o1_pro = "o1-pro"  # only supports v1/responses
 
     # Flagship models:
     gpt_4_1 = "gpt-4.1"
     gpt_4o = "gpt-4o"
-    # gpt_4o_audio = "gpt-4o-audio-preview" # no audio in our CLI
-    gpt_chatgpt_4o = "chatgpt-4o"
+    # gpt_4o_audio = "gpt-4o-audio-preview"  # no audio in our CLI
+    # gpt_chatgpt_4o = "chatgpt-4o-latest"  # only supports v1/responses
 
     # Cost optimized models:
-    # gpt_o4_mini = "o4-mini" # also defined above
+    # gpt_o4_mini = "o4-mini"  # also defined above
     gpt_4_1_nano = "gpt-4.1-nano"
     gpt_4o_mini = "gpt-4o-mini"
     gpt_4_1_mini = "gpt-4.1-mini"
-    # gpt_o3_mini = "o3-mini" # also defined above
-    # gpt_4o_mini_audio = "gpt-4o-mini-audio-preview" # no audio in our CLI
+    # gpt_o3_mini = "o3-mini"  # also defined above
+    # gpt_4o_mini_audio = "gpt-4o-mini-audio-preview"  # no audio in our CLI
 
 
 class OpenAiModel(BaseModel):
@@ -37,11 +37,11 @@ class OpenAiModel(BaseModel):
         ModelName.gpt_o3: 200_000,
         ModelName.gpt_o3_mini: 200_000,
         ModelName.gpt_o1: 200_000,
-        ModelName.gpt_o1_pro: 200_000,
+        # ModelName.gpt_o1_pro: 200_000,
         ModelName.gpt_4_1: 1_047_576,
         ModelName.gpt_4o: 128_000,
         # ModelName.gpt_4o_audio: 128_000,
-        ModelName.gpt_chatgpt_4o: 128_000,
+        # ModelName.gpt_chatgpt_4o: 128_000,
         ModelName.gpt_o4_mini: 200_000,
         ModelName.gpt_4_1_mini: 1_047_576,
         ModelName.gpt_4_1_nano: 1_047_576,
@@ -54,11 +54,11 @@ class OpenAiModel(BaseModel):
         ModelName.gpt_o3: 100_000,
         ModelName.gpt_o3_mini: 100_000,
         ModelName.gpt_o1: 100_000,
-        ModelName.gpt_o1_pro: 100_000,
+        # ModelName.gpt_o1_pro: 100_000,
         ModelName.gpt_4_1: 32_768,
         ModelName.gpt_4o: 16_384,
         # ModelName.gpt_4o_audio: 16_384,
-        ModelName.gpt_chatgpt_4o: 16_384,
+        # ModelName.gpt_chatgpt_4o: 16_384,
         ModelName.gpt_o4_mini: 100_000,
         ModelName.gpt_4_1_mini: 32_768,
         ModelName.gpt_4_1_nano: 32_768,

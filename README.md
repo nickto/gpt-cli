@@ -4,9 +4,9 @@
 
 My terminal is always at my fingertips, unlike my browser. Moreover, it allows
 
-- tinkering with some GPT parameters,
+- tinkering with some model parameters,
 - saving and loading conversation context,
-- using GPT-4 without paying 20$ a month.
+- using latest OpenAI models without paying 20$ a month.
 
 And, to be honest, I also just wanted to play around with OpenAI API and
 [Typer](https://typer.tiangolo.com/).
@@ -14,6 +14,7 @@ And, to be honest, I also just wanted to play around with OpenAI API and
 ## TODO
 
 - [X] Show what the model is typing instead of just "Typing" spinner
+- [ ] Add support for `/v1/responses`, not only `/v1/chat/completions`.
 - [ ] Improve README with usage demos.
 
 ## Install
