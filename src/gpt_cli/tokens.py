@@ -4,8 +4,6 @@ import re
 
 
 def guess_encoding_using_heuristics(model_name: ModelName) -> tiktoken.Encoding:
-    print("I AM HERE")
-    print(model_name.value)
     # oX models, e.g. o3, o4, o1, o1-pro
     if re.search(r"o\d+", model_name.value):
         return tiktoken.get_encoding("o200k_base")
