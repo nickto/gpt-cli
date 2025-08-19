@@ -26,11 +26,18 @@ def test_model_dump(model_name):
 @pytest.mark.parametrize("model_name", [m for m in ModelName])
 def test_no_exception_when_called(model_name, use_o3):
     openai.api_key = OpenaiApiKey().get()
-    if model_name == ModelName.gpt_o3 and not use_o3:
+    if (
+        model_name
+        in (ModelName.gpt_o3, ModelName.gpt_o3_deep_research, ModelName.gpt_o3_pro)
+        and not use_o3
+    ):
         pytest.skip("Skipping test for o3 model. Use --o3 to run it.")
 
     response = ChatCompletion.create(
         model=model_name.value,
         messages=[{"role": "user", "content": "DO NOT DO ANYTHING! Just return 'OK'"}],
     )
-    assert response["choices"][0]["message"]["content"] == "OK"  # type: ignore
+    content = response["choices"][0]["message"]["content"]  # type: ignore
+    # Responses still often contain more than just "OK"
+    content = content.replace("'", "").replace('"', "").strip()
+    assert content == "OK"

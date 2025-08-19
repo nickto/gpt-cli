@@ -1,6 +1,6 @@
 [project]
 name = "gpt-cli"
-version = "2.0.1"
+version = "2.0.2"
 description = "CLI for OpenAI ChatGPT and instruct models."
 readme = "README.md"
 authors = [{ name = "Nick To", email = "nick@nickto.net" }]
